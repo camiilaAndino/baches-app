@@ -6,18 +6,35 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "miapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.alertabaches.miapp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para marcar el punto exacto del reporte en el mapa.",
+        "NSCameraUsageDescription": "Usamos la cámara para tomar fotos del problema que estás reportando.",
+        "NSPhotoLibraryUsageDescription": "Usamos tu galería para adjuntar fotos del problema reportado."
+      }
     },
     "android": {
+      "package": "com.alertabaches.miapp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "PONE_ACA_TU_API_KEY_DE_GOOGLE_MAPS"
+        }
+      }
     },
     "web": {
       "output": "static",
@@ -25,12 +42,26 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos tu ubicación para marcar el punto exacto del reporte en el mapa."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Usamos tu galería para adjuntar fotos del problema reportado.",
+          "cameraPermission": "Usamos la cámara para tomar fotos del problema que estás reportando."
         }
       ]
     ],
