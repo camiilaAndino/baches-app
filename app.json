@@ -4,11 +4,10 @@
     "slug": "MiApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo_app.png",
     "scheme": "miapp",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.alertabaches.miapp",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para marcar el punto exacto del reporte en el mapa.",
@@ -19,22 +18,15 @@
     "android": {
       "package": "com.alertabaches.miapp",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/logo_app.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "PONE_ACA_TU_API_KEY_DE_GOOGLE_MAPS"
-        }
-      }
+      ]
     },
     "web": {
       "output": "static",
@@ -42,13 +34,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-dev-client",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/logo_app.png",
+          "imageWidth": 180
         }
       ],
       [

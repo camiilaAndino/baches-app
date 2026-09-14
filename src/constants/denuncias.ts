@@ -59,6 +59,29 @@ export const TIPO_META: Record<DenunciaTipo, { label: string; color: string; ico
   },
 };
 
+/** Estados reales que devuelve la API (distinto del enum de datos mock de abajo). */
+export type DenunciaEstadoApi = 'pendiente' | 'en_proceso' | 'resuelta';
+
+export const ESTADOS_API_ORDEN: DenunciaEstadoApi[] = ['pendiente', 'en_proceso', 'resuelta'];
+
+export const ESTADO_API_META: Record<DenunciaEstadoApi, { label: string; color: string; icon: SymbolName }> = {
+  pendiente: {
+    label: 'Pendiente',
+    color: '#E8A93C',
+    icon: { ios: 'clock', android: 'schedule', web: 'schedule' },
+  },
+  en_proceso: {
+    label: 'En proceso',
+    color: '#3C87F7',
+    icon: { ios: 'wrench.and.screwdriver', android: 'engineering', web: 'engineering' },
+  },
+  resuelta: {
+    label: 'Resuelta',
+    color: '#2FAF64',
+    icon: { ios: 'checkmark.circle', android: 'check_circle', web: 'check_circle' },
+  },
+};
+
 export type DenunciaPrioridad = 'leve' | 'moderado' | 'grave';
 
 export const PRIORIDADES_ORDEN: DenunciaPrioridad[] = ['leve', 'moderado', 'grave'];

@@ -6,9 +6,17 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export function SearchBar() {
+type SearchBarProps = {
+  value?: string;
+  onChangeText?: (value: string) => void;
+  placeholder?: string;
+};
+
+export function SearchBar({ value, onChangeText, placeholder }: SearchBarProps = {}) {
   const theme = useTheme();
-  const [query, setQuery] = useState('');
+  const [queryInterno, setQueryInterno] = useState('');
+  const query = value ?? queryInterno;
+  const setQuery = onChangeText ?? setQueryInterno;
 
   return (
     <ThemedView type="backgroundElement" style={styles.container}>
@@ -20,7 +28,7 @@ export function SearchBar() {
       <TextInput
         value={query}
         onChangeText={setQuery}
-        placeholder="Buscar por palabra clave o zona"
+        placeholder={placeholder ?? 'Buscar por palabra clave o zona'}
         placeholderTextColor={theme.textSecondary}
         style={[styles.input, { color: theme.text }]}
       />
