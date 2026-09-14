@@ -1,27 +1,34 @@
+import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 
 export function ProfileHeader() {
   const theme = useTheme();
+  const { usuario } = useAuth();
+  const iniciales = usuario?.name?.slice(0, 2).toUpperCase() ?? '??';
+  const primerNombre = usuario?.name?.split(' ')[0] ?? 'vecino/a';
 
   return (
     <View style={styles.row}>
-      <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-        <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
-          JP
-        </ThemedText>
-      </View>
+      <Pressable onPress={() => router.push('/perfil')}>
+        <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+          <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
+            {iniciales}
+          </ThemedText>
+        </View>
+      </Pressable>
 
       <View style={styles.texts}>
         <ThemedText type="small" themeColor="textSecondary">
           Hola 👋
         </ThemedText>
-        <ThemedText type="smallBold">Juan Pérez</ThemedText>
+        <ThemedText type="smallBold">{primerNombre}</ThemedText>
       </View>
 
       <Pressable style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
@@ -35,7 +42,9 @@ export function ProfileHeader() {
         </ThemedView>
       </Pressable>
 
-      <Pressable style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+      <Pressable
+        onPress={() => router.push('/perfil')}
+        style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
         <ThemedView type="backgroundElement" style={styles.iconCircle}>
           <SymbolView
             name={{ ios: 'person.crop.circle', android: 'person', web: 'person' }}

@@ -10,7 +10,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   TextInput,
   View,
 } from 'react-native';
@@ -22,14 +21,16 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { DenunciaPrioridad, PRIORIDADES_ORDEN, PRIORIDAD_META, inferirVisualTipo } from '@/constants/denuncias';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
-import { crearDenuncia, fetchTiposDenuncia, FotoParaSubir, TipoDenunciaApi } from '@/services/api';
+import { FotoParaSubir, TipoDenunciaApi, crearDenuncia, fetchTiposDenuncia } from '@/services/api';
 
 type FotoSeleccionada = FotoParaSubir;
 
 export default function CrearDenunciaScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { usuario } = useAuth();
 
   const [tipos, setTipos] = useState<TipoDenunciaApi[]>([]);
   const [cargandoTipos, setCargandoTipos] = useState(true);
@@ -42,7 +43,6 @@ export default function CrearDenunciaScreen() {
   const [prioridad, setPrioridad] = useState<DenunciaPrioridad>('moderado');
   const [ubicacion, setUbicacion] = useState<{ latitude: number; longitude: number } | null>(null);
   const [fotos, setFotos] = useState<FotoSeleccionada[]>([]);
-  const [anonima, setAnonima] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [mostrarExito, setMostrarExito] = useState(false);
 
@@ -116,6 +116,7 @@ export default function CrearDenunciaScreen() {
     try {
       await crearDenuncia({
         tipoDenunciaId: tipoId,
+        usuarioId: usuario?.id,
         descripcion: descripcionCompleta,
         latitud: ubicacion.latitude,
         longitud: ubicacion.longitude,
@@ -131,16 +132,24 @@ export default function CrearDenunciaScreen() {
     }
   }
 
+  function volverAlInicio() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  }
+
   function cerrarExitoYVolver() {
     setMostrarExito(false);
-    router.back();
+    volverAlInicio();
   }
 
   return (
     <ThemedView style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={volverAlInicio}
           hitSlop={8}
           style={({ pressed }) => pressed && styles.pressed}>
           <ThemedView type="backgroundElement" style={styles.closeButton}>
@@ -169,7 +178,7 @@ export default function CrearDenunciaScreen() {
               <ThemedText type="small" style={{ color: theme.primary }}>
                 {errorTipos} Tocá para reintentar.
               </ThemedText>
-            </Pressable>
+            </Pressable> 
           ) : (
             <View style={styles.chipsWrap}>
               {tipos.map((item) => {
@@ -303,21 +312,6 @@ export default function CrearDenunciaScreen() {
             </ThemedView>
           </Pressable>
         </View>
-
-        <ThemedView type="backgroundElement" style={styles.anonimaRow}>
-          <SymbolView
-            name={{ ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }}
-            size={16}
-            tintColor={theme.text}
-          />
-          <View style={styles.anonimaTexts}>
-            <ThemedText type="small">Denunciar de forma anónima</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Tu nombre no se compartirá con el municipio
-            </ThemedText>
-          </View>
-          <Switch value={anonima} onValueChange={setAnonima} />
-        </ThemedView>
 
         <Pressable
           disabled={enviando}
@@ -459,17 +453,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000099',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  anonimaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    borderRadius: Spacing.three,
-    padding: Spacing.three,
-  },
-  anonimaTexts: {
-    flex: 1,
-    gap: 2,
   },
   submitButton: {
     alignItems: 'center',

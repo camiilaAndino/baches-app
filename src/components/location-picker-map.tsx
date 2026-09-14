@@ -1,8 +1,8 @@
 import * as Location from 'expo-location';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import MapView, { MapPressEvent, Marker, Region } from 'react-native-maps';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -16,25 +16,55 @@ type Props = {
   onChange: (coords: Coordenadas) => void;
 };
 
-const REGION_POR_DEFECTO: Region = {
-  latitude: -25.2637,
-  longitude: -57.5759,
-  latitudeDelta: 0.02,
-  longitudeDelta: 0.02,
-};
+const REGION_POR_DEFECTO = { latitude: -25.2637, longitude: -57.5759 };
+
+function construirHtml(inicial: Coordenadas | null): string {
+  const centro = inicial ?? REGION_POR_DEFECTO;
+  const marcadorInicialJs = inicial
+    ? `L.marker([${inicial.latitude}, ${inicial.longitude}]).addTo(map);`
+    : 'null;';
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>html, body, #map { height: 100%; margin: 0; padding: 0; }</style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map', { attributionControl: false }).setView([${centro.latitude}, ${centro.longitude}], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    var marker = ${marcadorInicialJs}
+
+    function moverMarcador(lat, lng) {
+      var latlng = L.latLng(lat, lng);
+      if (marker) { map.removeLayer(marker); }
+      marker = L.marker(latlng).addTo(map);
+      map.setView(latlng, 16);
+    }
+
+    map.on('click', function (e) {
+      moverMarcador(e.latlng.lat, e.latlng.lng);
+      window.ReactNativeWebView.postMessage(JSON.stringify({ lat: e.latlng.lat, lng: e.latlng.lng }));
+    });
+  </script>
+</body>
+</html>`;
+}
 
 export function LocationPickerMap({ value, onChange }: Props) {
   const theme = useTheme();
-  const mapRef = useRef<MapView>(null);
+  const webviewRef = useRef<WebView>(null);
   const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!value) {
-      usarUbicacionActual();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // El HTML solo se arma una vez con el punto inicial; los cambios posteriores
+  // (tocar el mapa o "usar mi ubicación") se aplican inyectando JS, no
+  // reconstruyendo la página completa.
+  const html = useMemo(() => construirHtml(value), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function usarUbicacionActual() {
     setBuscandoUbicacion(true);
@@ -49,7 +79,7 @@ export function LocationPickerMap({ value, onChange }: Props) {
       const posicion = await Location.getCurrentPositionAsync({});
       const coords = { latitude: posicion.coords.latitude, longitude: posicion.coords.longitude };
       onChange(coords);
-      mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 500);
+      webviewRef.current?.injectJavaScript(`moverMarcador(${coords.latitude}, ${coords.longitude}); true;`);
     } catch {
       setErrorUbicacion('No se pudo obtener tu ubicación. Marcá el punto tocando el mapa.');
     } finally {
@@ -57,20 +87,25 @@ export function LocationPickerMap({ value, onChange }: Props) {
     }
   }
 
-  function handlePress(event: MapPressEvent) {
-    onChange(event.nativeEvent.coordinate);
+  function handleMessage(event: WebViewMessageEvent) {
+    try {
+      const { lat, lng } = JSON.parse(event.nativeEvent.data);
+      onChange({ latitude: lat, longitude: lng });
+    } catch {
+      // ignorar mensajes inesperados
+    }
   }
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
+        <WebView
+          ref={webviewRef}
+          originWhitelist={['*']}
+          source={{ html }}
+          onMessage={handleMessage}
           style={styles.map}
-          initialRegion={value ? { ...value, latitudeDelta: 0.01, longitudeDelta: 0.01 } : REGION_POR_DEFECTO}
-          onPress={handlePress}>
-          {value && <Marker coordinate={value} />}
-        </MapView>
+        />
 
         <Pressable
           onPress={usarUbicacionActual}
@@ -106,10 +141,10 @@ const styles = StyleSheet.create({
   mapContainer: {
     borderRadius: Spacing.three,
     overflow: 'hidden',
+    height: 200,
   },
   map: {
-    width: '100%',
-    height: 200,
+    flex: 1,
   },
   locateButton: {
     position: 'absolute',
