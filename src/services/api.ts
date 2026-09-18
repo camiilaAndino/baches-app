@@ -1,3 +1,6 @@
+import { File as ArchivoNativo, UploadType } from 'expo-file-system';
+import { Platform } from 'react-native';
+
 import { DenunciaEstadoApi, DenunciaPrioridad } from '@/constants/denuncias';
 
 /**
@@ -81,6 +84,48 @@ export async function registrarUsuario(payload: NuevoUsuarioPayload): Promise<Us
   return json.data as UsuarioAutenticado;
 }
 
+export type ActualizarPerfilPayload = {
+  name: string;
+  email: string;
+};
+
+export async function actualizarPerfil(usuarioId: number, payload: ActualizarPerfilPayload): Promise<UsuarioAutenticado> {
+  const response = await fetch(`${API_BASE_URL}/perfil/${usuarioId}`, {
+    method: 'PUT',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extraerMensajeDeError(response, 'No se pudo actualizar el perfil.'));
+  }
+
+  const json = await response.json();
+  return json.data as UsuarioAutenticado;
+}
+
+export type ActualizarPasswordPayload = {
+  passwordActual: string;
+  password: string;
+  passwordConfirmation: string;
+};
+
+export async function actualizarPassword(usuarioId: number, payload: ActualizarPasswordPayload): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/perfil/${usuarioId}/password`, {
+    method: 'PUT',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      password_actual: payload.passwordActual,
+      password: payload.password,
+      password_confirmation: payload.passwordConfirmation,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extraerMensajeDeError(response, 'No se pudo actualizar la contraseña.'));
+  }
+}
+
 export async function fetchTiposDenuncia(): Promise<TipoDenunciaApi[]> {
   const response = await fetch(`${API_BASE_URL}/tipos-denuncia`, {
     headers: { Accept: 'application/json' },
@@ -140,7 +185,7 @@ export type NuevaDenunciaPayload = {
   fotos: FotoParaSubir[];
 };
 
-export async function crearDenuncia(payload: NuevaDenunciaPayload): Promise<void> {
+function construirFormDataDenuncia(payload: NuevaDenunciaPayload, incluirFotosWeb: boolean): FormData {
   const formData = new FormData();
   formData.append('tipo_denuncia_id', String(payload.tipoDenunciaId));
   formData.append('descripcion', payload.descripcion);
@@ -156,19 +201,36 @@ export async function crearDenuncia(payload: NuevaDenunciaPayload): Promise<void
     formData.append('usuario_id', String(payload.usuarioId));
   }
 
-  payload.fotos.forEach((foto) => {
-    if (foto.file) {
-      // Web: hay que mandar el File real del navegador, no un objeto {uri,name,type}.
-      formData.append('fotos[]', foto.file, foto.name);
-    } else {
-      formData.append('fotos[]', {
-        uri: foto.uri,
-        name: foto.name,
-        type: foto.type,
-      } as unknown as Blob);
-    }
-  });
+  if (incluirFotosWeb) {
+    payload.fotos.forEach((foto) => {
+      // Web: expo-image-picker entrega un File real del navegador, sin el bug de nativo.
+      if (foto.file) formData.append('fotos[]', foto.file, foto.name);
+    });
+  }
 
+  return formData;
+}
+
+export async function crearDenuncia(payload: NuevaDenunciaPayload): Promise<void> {
+  if (Platform.OS === 'web') {
+    const formData = construirFormDataDenuncia(payload, true);
+    const response = await fetch(`${API_BASE_URL}/denuncias`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(await extraerMensajeDeError(response, 'No se pudo enviar la denuncia.'));
+    }
+    return;
+  }
+
+  // Nativo (iOS/Android): con la New Architecture, el FormData de React Native ya
+  // no acepta archivos ("Unsupported FormData part implementation"). Primero se
+  // crea la denuncia sin fotos, y después cada foto se sube por separado con el
+  // subsistema nativo de subida de expo-file-system (bypassea ese bug por completo).
+  const formData = construirFormDataDenuncia(payload, false);
   const response = await fetch(`${API_BASE_URL}/denuncias`, {
     method: 'POST',
     headers: { Accept: 'application/json' },
@@ -177,5 +239,22 @@ export async function crearDenuncia(payload: NuevaDenunciaPayload): Promise<void
 
   if (!response.ok) {
     throw new Error(await extraerMensajeDeError(response, 'No se pudo enviar la denuncia.'));
+  }
+
+  const json = await response.json();
+  const denunciaId = json.data.id as number;
+
+  for (const foto of payload.fotos) {
+    const archivo = new ArchivoNativo(foto.uri);
+    const resultado = await archivo.upload(`${API_BASE_URL}/denuncias/${denunciaId}/fotos`, {
+      uploadType: UploadType.MULTIPART,
+      fieldName: 'foto',
+      mimeType: foto.type,
+      headers: { Accept: 'application/json' },
+    });
+
+    if (resultado.status >= 400) {
+      throw new Error('La denuncia se guardó, pero una foto no se pudo subir. Intentá agregarla de nuevo más tarde.');
+    }
   }
 }

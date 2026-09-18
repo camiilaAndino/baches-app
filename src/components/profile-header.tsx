@@ -3,12 +3,11 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 
-export function ProfileHeader() {
+export function ProfileIcons() {
   const theme = useTheme();
   const { usuario } = useAuth();
   const iniciales = usuario?.name?.slice(0, 2).toUpperCase() ?? '??';
@@ -25,33 +24,38 @@ export function ProfileHeader() {
       </Pressable>
 
       <View style={styles.texts}>
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="small" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
           Hola 👋
         </ThemedText>
-        <ThemedText type="smallBold">{primerNombre}</ThemedText>
+        <ThemedText type="smallBold" style={{ color: '#ffffff' }}>
+          {primerNombre}
+        </ThemedText>
       </View>
 
-      <Pressable style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
-        <ThemedView type="backgroundElement" style={styles.iconCircle}>
+      <View style={styles.spacer} />
+
+      <Pressable
+        onPress={() => router.push('/notificaciones')}
+        style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+        <View style={styles.iconCircle}>
           <SymbolView
             name={{ ios: 'bell', android: 'notifications', web: 'notifications' }}
             size={16}
-            tintColor={theme.text}
+            tintColor="#ffffff"
           />
-          <View style={styles.badgeDot} />
-        </ThemedView>
+        </View>
       </Pressable>
 
       <Pressable
         onPress={() => router.push('/perfil')}
         style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
-        <ThemedView type="backgroundElement" style={styles.iconCircle}>
+        <View style={styles.iconCircle}>
           <SymbolView
             name={{ ios: 'person.crop.circle', android: 'person', web: 'person' }}
             size={16}
-            tintColor={theme.text}
+            tintColor="#ffffff"
           />
-        </ThemedView>
+        </View>
       </Pressable>
     </View>
   );
@@ -61,7 +65,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    width: '100%',
+  },
+  spacer: {
+    flex: 1,
   },
   avatar: {
     width: 40,
@@ -71,11 +78,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   texts: {
-    flex: 1,
+    marginLeft: Spacing.two,
     gap: 2,
   },
   iconButton: {
-    marginLeft: Spacing.one,
+    marginLeft: Spacing.two,
   },
   pressed: {
     opacity: 0.7,
@@ -86,14 +93,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  badgeDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#E14C4C',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
 });

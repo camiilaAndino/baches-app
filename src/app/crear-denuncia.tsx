@@ -27,6 +27,8 @@ import { FotoParaSubir, TipoDenunciaApi, crearDenuncia, fetchTiposDenuncia } fro
 
 type FotoSeleccionada = FotoParaSubir;
 
+type CamposDenuncia = 'tipo' | 'descripcion' | 'ubicacion' | 'fotos';
+
 export default function CrearDenunciaScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -45,6 +47,12 @@ export default function CrearDenunciaScreen() {
   const [fotos, setFotos] = useState<FotoSeleccionada[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [mostrarExito, setMostrarExito] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [erroresCampo, setErroresCampo] = useState<Partial<Record<CamposDenuncia, string>>>({});
+
+  function limpiarErrorCampo(campo: CamposDenuncia) {
+    setErroresCampo((actuales) => (actuales[campo] ? { ...actuales, [campo]: undefined } : actuales));
+  }
 
   useEffect(() => {
     cargarTipos();
@@ -86,29 +94,36 @@ export default function CrearDenunciaScreen() {
     }));
 
     setFotos((actuales) => [...actuales, ...nuevas]);
+    limpiarErrorCampo('fotos');
   }
 
   function quitarFoto(uri: string) {
     setFotos((actuales) => actuales.filter((foto) => foto.uri !== uri));
   }
 
-  async function enviarDenuncia() {
+  function validar(): boolean {
+    const errores: Partial<Record<CamposDenuncia, string>> = {};
+
     if (!tipoId) {
-      Alert.alert('Falta el tipo', 'Elegí un tipo de denuncia.');
-      return;
+      errores.tipo = 'Elegí un tipo de denuncia.';
     }
     if (!descripcion.trim()) {
-      Alert.alert('Falta la descripción', 'Contanos qué está pasando.');
-      return;
+      errores.descripcion = 'Contanos qué está pasando.';
     }
     if (!ubicacion) {
-      Alert.alert('Falta la ubicación', 'Marcá el punto en el mapa.');
-      return;
+      errores.ubicacion = 'Marcá el punto en el mapa.';
     }
     if (fotos.length === 0) {
-      Alert.alert('Falta una foto', 'Agregá al menos una foto como evidencia.');
-      return;
+      errores.fotos = 'Agregá al menos una foto como evidencia.';
     }
+
+    setErroresCampo(errores);
+    return Object.keys(errores).length === 0;
+  }
+
+  async function enviarDenuncia() {
+    setError(null);
+    if (!validar() || !ubicacion || !tipoId) return;
 
     const descripcionCompleta = titulo.trim() ? `${titulo.trim()}\n\n${descripcion.trim()}` : descripcion.trim();
 
@@ -125,8 +140,8 @@ export default function CrearDenunciaScreen() {
         fotos,
       });
       setMostrarExito(true);
-    } catch (error) {
-      Alert.alert('No se pudo enviar', error instanceof Error ? error.message : 'Intentá de nuevo.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo enviar la denuncia. Intentá de nuevo.');
     } finally {
       setEnviando(false);
     }
@@ -190,11 +205,19 @@ export default function CrearDenunciaScreen() {
                     icon={visual.icon}
                     color={visual.color}
                     selected={tipoId === item.id}
-                    onPress={() => setTipoId(item.id)}
+                    onPress={() => {
+                      setTipoId(item.id);
+                      limpiarErrorCampo('tipo');
+                    }}
                   />
                 );
               })}
             </View>
+          )}
+          {erroresCampo.tipo && (
+            <ThemedText type="small" style={styles.campoError}>
+              {erroresCampo.tipo}
+            </ThemedText>
           )}
         </View>
 
@@ -237,7 +260,18 @@ export default function CrearDenunciaScreen() {
           <ThemedText type="small" themeColor="textSecondary">
             Ubicación en el mapa
           </ThemedText>
-          <LocationPickerMap value={ubicacion} onChange={setUbicacion} />
+          <LocationPickerMap
+            value={ubicacion}
+            onChange={(coords) => {
+              setUbicacion(coords);
+              limpiarErrorCampo('ubicacion');
+            }}
+          />
+          {erroresCampo.ubicacion && (
+            <ThemedText type="small" style={styles.campoError}>
+              {erroresCampo.ubicacion}
+            </ThemedText>
+          )}
         </View>
 
         <View style={styles.field}>
@@ -247,7 +281,10 @@ export default function CrearDenunciaScreen() {
           <ThemedView type="backgroundElement" style={[styles.inputWrapper, styles.textareaWrapper]}>
             <TextInput
               value={descripcion}
-              onChangeText={setDescripcion}
+              onChangeText={(valor) => {
+                setDescripcion(valor);
+                limpiarErrorCampo('descripcion');
+              }}
               placeholder="Contá con el mayor detalle posible qué está pasando"
               placeholderTextColor={theme.textSecondary}
               style={[styles.input, styles.textarea, { color: theme.text }]}
@@ -255,6 +292,11 @@ export default function CrearDenunciaScreen() {
               numberOfLines={4}
             />
           </ThemedView>
+          {erroresCampo.descripcion && (
+            <ThemedText type="small" style={styles.campoError}>
+              {erroresCampo.descripcion}
+            </ThemedText>
+          )}
         </View>
 
         <View style={styles.field}>
@@ -311,7 +353,21 @@ export default function CrearDenunciaScreen() {
               </ThemedText>
             </ThemedView>
           </Pressable>
+
+          {erroresCampo.fotos && (
+            <ThemedText type="small" style={styles.campoError}>
+              {erroresCampo.fotos}
+            </ThemedText>
+          )}
         </View>
+
+        {error && (
+          <ThemedView type="backgroundElement" style={styles.errorBox}>
+            <ThemedText type="small" style={styles.campoError}>
+              {error}
+            </ThemedText>
+          </ThemedView>
+        )}
 
         <Pressable
           disabled={enviando}
@@ -459,6 +515,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  campoError: {
+    color: '#EB5757',
+  },
+  errorBox: {
+    borderRadius: Spacing.three,
+    padding: Spacing.three,
   },
   exitoBackdrop: {
     flex: 1,

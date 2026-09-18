@@ -2,12 +2,12 @@ import { Link, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AllDenunciasMap } from '@/components/all-denuncias-map';
+import { AuthHeader } from '@/components/auth-header';
 import { Chip } from '@/components/chip';
 import { MiDenunciaCard } from '@/components/mi-denuncia-card';
-import { ProfileHeader } from '@/components/profile-header';
+import { ProfileIcons } from '@/components/profile-header';
 import { SearchBar } from '@/components/search-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -20,7 +20,6 @@ import { DenunciaApi, fetchDenuncias } from '@/services/api';
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { usuario } = useAuth();
 
   const [denuncias, setDenuncias] = useState<DenunciaApi[]>([]);
@@ -73,119 +72,124 @@ export default function HomeScreen() {
   }, [denuncias, usuario?.id, filtroEstado, busqueda]);
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + Spacing.four }]}
-      refreshControl={<RefreshControl refreshing={refrescando} onRefresh={handleRefresh} />}>
-      <ThemedView style={styles.container}>
-        <View style={styles.section}>
-          <ProfileHeader />
-        </View>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <AuthHeader height={90}>
+        <ProfileIcons />
+      </AuthHeader>
 
-        <View style={styles.section}>
-          <Link href="/crear-denuncia" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <View style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
-                <SymbolView
-                  name={{ ios: 'plus.circle.fill', android: 'add', web: 'add' }}
-                  size={18}
-                  tintColor={theme.onPrimary}
-                />
-                <ThemedText type="default" style={{ color: theme.onPrimary, fontWeight: '600' }}>
-                  Hacer una denuncia
-                </ThemedText>
-              </View>
-            </Pressable>
-          </Link>
-        </View>
-
-        {error && (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.contentContainer, { paddingTop: Spacing.four }]}
+        refreshControl={<RefreshControl refreshing={refrescando} onRefresh={handleRefresh} />}>
+        <ThemedView style={styles.container}>
           <View style={styles.section}>
-            <Pressable onPress={() => cargarDenuncias()} style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.errorBox}>
-                <ThemedText type="small" style={{ color: '#EB5757' }}>
-                  {error} Tocá para reintentar.
-                </ThemedText>
-              </ThemedView>
-            </Pressable>
-          </View>
-        )}
-
-        {cargando ? (
-          <ActivityIndicator color={theme.primary} style={styles.loader} />
-        ) : (
-          <>
-            <View style={styles.section}>
-              <ThemedText type="smallBold" style={styles.sectionTitle}>
-                Mapa de denuncias
-              </ThemedText>
-              <AllDenunciasMap denuncias={denuncias} />
-            </View>
-
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <ThemedText type="smallBold" style={styles.sectionTitle}>
-                  Mis denuncias
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {misDenuncias.length}
-                </ThemedText>
-              </View>
-
-              <SearchBar
-                value={busqueda}
-                onChangeText={setBusqueda}
-                placeholder="Buscar en mis denuncias"
-              />
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterChips}>
-                <Chip
-                  label="Todas"
-                  selected={filtroEstado === 'todas'}
-                  onPress={() => setFiltroEstado('todas')}
-                />
-                {ESTADOS_API_ORDEN.map((estado) => (
-                  <Chip
-                    key={estado}
-                    label={ESTADO_API_META[estado].label}
-                    icon={ESTADO_API_META[estado].icon}
-                    color={ESTADO_API_META[estado].color}
-                    selected={filtroEstado === estado}
-                    onPress={() => setFiltroEstado(estado)}
+            <Link href="/crear-denuncia" asChild>
+              <Pressable style={({ pressed }) => pressed && styles.pressed}>
+                <View style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
+                  <SymbolView
+                    name={{ ios: 'plus.circle.fill', android: 'add', web: 'add' }}
+                    size={18}
+                    tintColor={theme.onPrimary}
                   />
-                ))}
-              </ScrollView>
+                  <ThemedText type="default" style={{ color: theme.onPrimary, fontWeight: '600' }}>
+                    Hacer una denuncia
+                  </ThemedText>
+                </View>
+              </Pressable>
+            </Link>
+          </View>
 
-              <View style={styles.denunciasList}>
-                {misDenuncias.length === 0 ? (
-                  <ThemedView type="backgroundElement" style={styles.emptyState}>
-                    <SymbolView
-                      name={{ ios: 'tray', android: 'inbox', web: 'inbox' }}
-                      size={22}
-                      tintColor={theme.textSecondary}
-                    />
-                    <ThemedText type="small" themeColor="textSecondary" style={styles.emptyStateText}>
-                      Todavía no hiciste ninguna denuncia. ¡Reportá el primer bache!
-                    </ThemedText>
-                  </ThemedView>
-                ) : (
-                  misDenuncias.map((denuncia) => <MiDenunciaCard key={denuncia.id} denuncia={denuncia} />)
-                )}
-              </View>
+          {error && (
+            <View style={styles.section}>
+              <Pressable onPress={() => cargarDenuncias()} style={({ pressed }) => pressed && styles.pressed}>
+                <ThemedView type="backgroundElement" style={[styles.errorBox, { borderColor: theme.border }]}>
+                  <ThemedText type="small" style={{ color: '#EB5757' }}>
+                    {error} Tocá para reintentar.
+                  </ThemedText>
+                </ThemedView>
+              </Pressable>
             </View>
-          </>
-        )}
+          )}
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+          {cargando ? (
+            <ActivityIndicator color={theme.primary} style={styles.loader} />
+          ) : (
+            <>
+              <View style={styles.section}>
+                <ThemedText type="smallBold" style={styles.sectionTitle}>
+                  Mapa de denuncias
+                </ThemedText>
+                <AllDenunciasMap denuncias={denuncias} />
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <ThemedText type="smallBold" style={styles.sectionTitle}>
+                    Mis denuncias
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {misDenuncias.length}
+                  </ThemedText>
+                </View>
+
+                <SearchBar
+                  value={busqueda}
+                  onChangeText={setBusqueda}
+                  placeholder="Buscar en mis denuncias"
+                />
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.filterChips}>
+                  <Chip
+                    label="Todas"
+                    selected={filtroEstado === 'todas'}
+                    onPress={() => setFiltroEstado('todas')}
+                  />
+                  {ESTADOS_API_ORDEN.map((estado) => (
+                    <Chip
+                      key={estado}
+                      label={ESTADO_API_META[estado].label}
+                      icon={ESTADO_API_META[estado].icon}
+                      color={ESTADO_API_META[estado].color}
+                      selected={filtroEstado === estado}
+                      onPress={() => setFiltroEstado(estado)}
+                    />
+                  ))}
+                </ScrollView>
+
+                <View style={styles.denunciasList}>
+                  {misDenuncias.length === 0 ? (
+                    <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
+                      <SymbolView
+                        name={{ ios: 'tray', android: 'inbox', web: 'inbox' }}
+                        size={22}
+                        tintColor={theme.textSecondary}
+                      />
+                      <ThemedText type="small" themeColor="textSecondary" style={styles.emptyStateText}>
+                        Todavía no hiciste ninguna denuncia. ¡Reportá el primer bache!
+                      </ThemedText>
+                    </ThemedView>
+                  ) : (
+                    misDenuncias.map((denuncia) => <MiDenunciaCard key={denuncia.id} denuncia={denuncia} />)
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+
+          {Platform.OS === 'web' && <WebBadge />}
+        </ThemedView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
@@ -220,11 +224,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.two,
     paddingVertical: Spacing.three,
-    borderRadius: Spacing.three,
+    borderRadius: 28,
   },
   errorBox: {
     borderRadius: Spacing.three,
     padding: Spacing.three,
+    borderWidth: 1,
   },
   loader: {
     marginTop: Spacing.six,
@@ -241,6 +246,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     borderRadius: Spacing.three,
     padding: Spacing.five,
+    borderWidth: 1,
   },
   emptyStateText: {
     textAlign: 'center',

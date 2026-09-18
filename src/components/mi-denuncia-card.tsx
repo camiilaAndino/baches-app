@@ -1,8 +1,7 @@
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -13,7 +12,6 @@ import { DenunciaApi } from '@/services/api';
 
 export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
   const theme = useTheme();
-  const [abierta, setAbierta] = useState(false);
   const visualTipo = inferirVisualTipo(denuncia.tipo_denuncia.nombre);
   const estadoMeta = ESTADO_API_META[denuncia.estado];
   const fecha = new Date(denuncia.created_at).toLocaleDateString('es-PY', {
@@ -25,7 +23,7 @@ export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
   return (
     <ThemedView type="backgroundElement" style={styles.card}>
       <Pressable
-        onPress={() => setAbierta((valor) => !valor)}
+        onPress={() => router.push({ pathname: '/denuncia/[id]', params: { id: String(denuncia.id) } })}
         style={({ pressed }) => pressed && styles.pressed}>
         <View style={styles.headerRow}>
           {denuncia.fotos_urls[0] ? (
@@ -50,7 +48,6 @@ export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
             size={13}
             weight="bold"
             tintColor={theme.textSecondary}
-            style={{ transform: [{ rotate: abierta ? '-90deg' : '90deg' }] }}
           />
         </View>
 
@@ -76,20 +73,6 @@ export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
           )}
         </View>
       </Pressable>
-
-      {abierta && (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.details}>
-          <ThemedText type="small">{denuncia.descripcion}</ThemedText>
-
-          {denuncia.fotos_urls.length > 0 && (
-            <View style={styles.fotosRow}>
-              {denuncia.fotos_urls.map((url) => (
-                <Image key={url} source={{ uri: url }} style={styles.fotoGrande} contentFit="cover" />
-              ))}
-            </View>
-          )}
-        </Animated.View>
-      )}
     </ThemedView>
   );
 }
@@ -148,19 +131,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  details: {
-    gap: Spacing.two,
-    marginTop: Spacing.one,
-  },
-  fotosRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  fotoGrande: {
-    width: 96,
-    height: 96,
-    borderRadius: Spacing.two,
   },
 });
