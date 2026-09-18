@@ -1,33 +1,59 @@
 import { Link } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OutlinedText } from '@/components/outlined-text';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { AuthHeader } from '@/components/auth-header';
+import { AuthSwitch } from '@/components/auth-switch';
+import { Colores } from '@/constants/auth-colors';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
-import { useTheme } from '@/hooks/use-theme';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type CamposLogin = 'email' | 'password';
+type ModoIngreso = 'password' | 'biometrico';
 
 export default function LoginScreen() {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { iniciarSesion } = useAuth();
+  const { iniciarSesion, iniciarSesionConBiometria, cuentaRecordada, biometriaActivada, olvidarCuentaRecordada } =
+    useAuth();
 
-  const [email, setEmail] = useState('');
+  const puedeUsarBiometria = !!cuentaRecordada && biometriaActivada;
+
+  const [modo, setModo] = useState<ModoIngreso>(puedeUsarBiometria ? 'biometrico' : 'password');
+  const [email, setEmail] = useState(cuentaRecordada?.email ?? '');
   const [password, setPassword] = useState('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [erroresCampo, setErroresCampo] = useState<Partial<Record<CamposLogin, string>>>({});
 
-  async function handleIniciarSesion() {
-    if (!email.trim() || !password) {
-      setError('Completá tu email y contraseña.');
-      return;
+  const [enviandoBiometria, setEnviandoBiometria] = useState(false);
+  const [errorBiometria, setErrorBiometria] = useState<string | null>(null);
+
+  function validar(): boolean {
+    const errores: Partial<Record<CamposLogin, string>> = {};
+
+    if (!email.trim()) {
+      errores.email = 'Ingresá tu email.';
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      errores.email = 'Ingresá un email válido.';
     }
 
+    if (!password) {
+      errores.password = 'Ingresá tu contraseña.';
+    }
+
+    setErroresCampo(errores);
+    return Object.keys(errores).length === 0;
+  }
+
+  async function handleIniciarSesion() {
     setError(null);
+    if (!validar()) return;
+
     setEnviando(true);
     try {
       await iniciarSesion(email.trim(), password);
@@ -38,189 +64,353 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleIniciarSesionBiometrica() {
+    setErrorBiometria(null);
+    setEnviandoBiometria(true);
+    const exito = await iniciarSesionConBiometria();
+    if (!exito) setErrorBiometria('No se pudo verificar tu identidad. Intentá de nuevo.');
+    setEnviandoBiometria(false);
+  }
+
+  async function handleUsarOtraCuenta() {
+    await olvidarCuentaRecordada();
+    setEmail('');
+    setModo('password');
+  }
+
   return (
-    <ThemedView style={styles.screen}>
-      <View style={[styles.content, { paddingTop: insets.top + Spacing.five, paddingBottom: insets.bottom + Spacing.five }]}>
-        <View style={styles.brand}>
-          <View style={styles.brandRow}>
-            <SymbolView
-              name={{ ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }}
-              size={30}
-              tintColor={theme.primary}
-            />
-            <View style={styles.titleRow}>
-              <Text style={[styles.brandTitle, { color: theme.text }]}>Alerta</Text>
-              <OutlinedText text="Baches" style={styles.brandTitle} color={theme.primary} />
+    <View style={styles.screen}>
+      <AuthHeader />
+
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets>
+        <View style={styles.formCard}>
+          {puedeUsarBiometria && (
+            <View style={styles.modoTabs}>
+              <Pressable
+                style={[styles.modoTab, modo === 'biometrico' && styles.modoTabActivo]}
+                onPress={() => setModo('biometrico')}>
+                <Text style={[styles.modoTabTexto, modo === 'biometrico' && styles.modoTabTextoActivo]}>
+                  Biometría
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modoTab, modo === 'password' && styles.modoTabActivo]}
+                onPress={() => setModo('password')}>
+                <Text style={[styles.modoTabTexto, modo === 'password' && styles.modoTabTextoActivo]}>
+                  Contraseña
+                </Text>
+              </Pressable>
             </View>
-          </View>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.brandSubtitle}>
-            Iniciá sesión para reportar y seguir el estado de tus denuncias
-          </ThemedText>
+          )}
+
+          {modo === 'biometrico' && cuentaRecordada ? (
+            <View style={styles.biometricoBlock}>
+              <View style={styles.biometricoIcono}>
+                <SymbolView
+                  name={{ ios: 'faceid', android: 'fingerprint', web: 'fingerprint' }}
+                  size={30}
+                  tintColor={Colores.signal}
+                />
+              </View>
+
+              <Text style={styles.greeting}>¡Hola, {cuentaRecordada.name.split(' ')[0]}!</Text>
+              <Text style={styles.subtitle}>Confirmá tu identidad para ingresar</Text>
+
+              {errorBiometria && (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorBoxText}>{errorBiometria}</Text>
+                </View>
+              )}
+
+              <Pressable
+                disabled={enviandoBiometria}
+                onPress={handleIniciarSesionBiometrica}
+                style={({ pressed }) => pressed && styles.pressed}>
+                <View style={[styles.submitButton, { opacity: enviandoBiometria ? 0.7 : 1 }]}>
+                  {enviandoBiometria ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Ingresar con biometría</Text>
+                  )}
+                </View>
+              </Pressable>
+
+              <Pressable onPress={handleUsarOtraCuenta} style={({ pressed }) => pressed && styles.pressed}>
+                <Text style={styles.otraCuenta}>¿No sos {cuentaRecordada.name.split(' ')[0]}? Usar otra cuenta</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.greeting}>¡Hola!</Text>
+              <Text style={styles.subtitle}>Iniciá sesión para reportar y seguir el estado de tus denuncias</Text>
+
+              <View style={styles.field}>
+                <View style={[styles.inputWrap, erroresCampo.email && styles.inputWrapError]}>
+                  <SymbolView
+                    name={{ ios: 'envelope', android: 'mail', web: 'mail' }}
+                    size={16}
+                    tintColor={Colores.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    value={email}
+                    onChangeText={(valor) => {
+                      setEmail(valor);
+                      if (erroresCampo.email) setErroresCampo((actuales) => ({ ...actuales, email: undefined }));
+                    }}
+                    placeholder="Email"
+                    placeholderTextColor="#a8abb1"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    style={styles.input}
+                  />
+                </View>
+                {erroresCampo.email && <Text style={styles.campoError}>{erroresCampo.email}</Text>}
+              </View>
+
+              <View style={styles.field}>
+                <View style={[styles.inputWrap, erroresCampo.password && styles.inputWrapError]}>
+                  <SymbolView
+                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                    size={16}
+                    tintColor={Colores.textMuted}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={(valor) => {
+                      setPassword(valor);
+                      if (erroresCampo.password) setErroresCampo((actuales) => ({ ...actuales, password: undefined }));
+                    }}
+                    placeholder="Contraseña"
+                    placeholderTextColor="#a8abb1"
+                    secureTextEntry={!mostrarPassword}
+                    autoComplete="password"
+                    style={styles.input}
+                  />
+                  <Pressable
+                    onPress={() => setMostrarPassword((valor) => !valor)}
+                    hitSlop={8}
+                    style={styles.toggleVisibility}>
+                    <SymbolView
+                      name={
+                        mostrarPassword
+                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                      }
+                      size={17}
+                      tintColor={Colores.textMuted}
+                    />
+                  </Pressable>
+                </View>
+                {erroresCampo.password && <Text style={styles.campoError}>{erroresCampo.password}</Text>}
+
+                <Link href="/recuperar-password" asChild>
+                  <Pressable style={({ pressed }) => pressed && styles.pressed}>
+                    <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
+                  </Pressable>
+                </Link>
+              </View>
+
+              {error && (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorBoxText}>{error}</Text>
+                </View>
+              )}
+
+              <Pressable
+                disabled={enviando}
+                onPress={handleIniciarSesion}
+                style={({ pressed }) => pressed && styles.pressed}>
+                <View style={[styles.submitButton, { opacity: enviando ? 0.7 : 1 }]}>
+                  {enviando ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Ingresar</Text>
+                  )}
+                </View>
+              </Pressable>
+            </>
+          )}
+
+          <AuthSwitch question="¿No tenés cuenta?" actionLabel="Crear una cuenta" href="/registro" />
         </View>
-
-        <ThemedView type="backgroundElement" style={styles.formCard}>
-          <View style={styles.field}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Email
-            </ThemedText>
-            <View style={styles.inputRow}>
-              <SymbolView
-                name={{ ios: 'envelope', android: 'mail', web: 'mail' }}
-                size={16}
-                tintColor={theme.textSecondary}
-              />
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="tu@email.com"
-                placeholderTextColor={theme.textSecondary}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                style={[styles.input, { color: theme.text }]}
-              />
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.field}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Contraseña
-            </ThemedText>
-            <View style={styles.inputRow}>
-              <SymbolView
-                name={{ ios: 'lock', android: 'lock', web: 'lock' }}
-                size={16}
-                tintColor={theme.textSecondary}
-              />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor={theme.textSecondary}
-                secureTextEntry
-                autoComplete="password"
-                style={[styles.input, { color: theme.text }]}
-              />
-            </View>
-          </View>
-        </ThemedView>
-
-        {error && (
-          <ThemedView type="backgroundElement" style={styles.errorBox}>
-            <ThemedText type="small" style={{ color: '#EB5757' }}>
-              {error}
-            </ThemedText>
-          </ThemedView>
-        )}
-
-        <Pressable
-          disabled={enviando}
-          onPress={handleIniciarSesion}
-          style={({ pressed }) => pressed && styles.pressed}>
-          <View style={[styles.submitButton, { backgroundColor: theme.primary, opacity: enviando ? 0.7 : 1 }]}>
-            {enviando ? (
-              <ActivityIndicator color={theme.onPrimary} />
-            ) : (
-              <ThemedText type="default" style={{ color: theme.onPrimary, fontWeight: '600' }}>
-                Ingresar
-              </ThemedText>
-            )}
-          </View>
-        </Pressable>
-
-        <Link href="/registro" asChild>
-          <Pressable style={({ pressed }) => [styles.registroRow, pressed && styles.pressed]}>
-            <ThemedText type="small" themeColor="textSecondary">
-              ¿No tenés cuenta?
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.primary, fontWeight: '600' }}>
-              Registrate
-            </ThemedText>
-          </Pressable>
-        </Link>
-      </View>
-    </ThemedView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  flex: {
+    flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignSelf: 'center',
     width: '100%',
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-    justifyContent: 'center',
-  },
-  brand: {
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  titleRow: {
-    flexDirection: 'row',
-  },
-  brandTitle: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  brandSubtitle: {
-    textAlign: 'center',
-    marginTop: Spacing.one,
-    maxWidth: 260,
+    justifyContent: 'flex-start',
   },
   formCard: {
-    borderRadius: Spacing.four,
-    padding: Spacing.four,
-    gap: Spacing.three,
+    backgroundColor: Colores.card,
+    borderWidth: 1,
+    borderColor: Colores.line200,
+    borderRadius: 28,
+    padding: 24,
+    paddingTop: 20,
+    marginTop: Spacing.five,
+    shadowColor: Colores.asphalt900,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  modoTabs: {
+    flexDirection: 'row',
+    backgroundColor: Colores.line200,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+  },
+  modoTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  modoTabActivo: {
+    backgroundColor: '#ffffff',
+    shadowColor: Colores.asphalt900,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  modoTabTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colores.textMuted,
+  },
+  modoTabTextoActivo: {
+    color: Colores.asphalt900,
+  },
+  biometricoBlock: {
+    alignItems: 'center',
+  },
+  biometricoIcono: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: `${Colores.signal}1A`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.two,
+  },
+  otraCuenta: {
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colores.textMuted,
+    marginTop: Spacing.three,
+  },
+  greeting: {
+    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colores.signal,
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: Colores.textMuted,
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 24,
+    alignSelf: 'center',
+    maxWidth: 260,
   },
   field: {
-    gap: Spacing.two,
+    marginBottom: 18,
   },
-  inputRow: {
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: Colores.line200,
+    borderRadius: 26,
+  },
+  inputWrapError: {
+    borderColor: '#EB5757',
+  },
+  inputIcon: {
+    marginLeft: 16,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    padding: 0,
+    color: Colores.textPrimary,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#80808040',
+  toggleVisibility: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  errorBox: {
-    borderRadius: Spacing.three,
-    padding: Spacing.three,
+  forgot: {
+    textAlign: 'right',
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colores.textMuted,
+    marginTop: 10,
   },
   pressed: {
     opacity: 0.8,
   },
+  errorBox: {
+    backgroundColor: '#FDECEC',
+    borderRadius: 8,
+    padding: Spacing.three,
+    marginBottom: Spacing.two,
+    width: '100%',
+  },
+  errorBoxText: {
+    fontSize: 13,
+    color: '#D64545',
+    textAlign: 'center',
+  },
+  campoError: {
+    fontSize: 12,
+    color: '#EB5757',
+    marginTop: 4,
+  },
   submitButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.three,
+    paddingVertical: 15,
+    borderRadius: 28,
+    backgroundColor: Colores.signal,
+    marginTop: 4,
+    width: '100%',
+    shadowColor: Colores.signalDark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  registroRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.one,
-    paddingTop: Spacing.one,
+  submitButtonText: {
+    color: '#ffffff',
+    fontSize: 15.5,
+    fontWeight: '600',
   },
 });

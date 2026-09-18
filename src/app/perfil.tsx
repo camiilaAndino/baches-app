@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,11 +12,26 @@ import { useTheme } from '@/hooks/use-theme';
 export default function PerfilScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { usuario, cerrarSesion } = useAuth();
+  const { usuario, cerrarSesion, biometriaActivada, activarBiometria, desactivarBiometria } = useAuth();
 
   async function handleCerrarSesion() {
     await cerrarSesion();
     router.replace('/login');
+  }
+
+  async function handleToggleBiometria(valor: boolean) {
+    if (!valor) {
+      await desactivarBiometria();
+      return;
+    }
+
+    const activada = await activarBiometria();
+    if (!activada) {
+      Alert.alert(
+        'No se pudo activar',
+        'Tu dispositivo no tiene huella/Face ID configurado, o no pudimos verificar tu identidad.'
+      );
+    }
   }
 
   function volverAlInicio() {
@@ -60,6 +75,35 @@ export default function PerfilScreen() {
             {usuario?.email}
           </ThemedText>
         </View>
+
+        <Link href="/editar-perfil" asChild>
+          <Pressable style={({ pressed }) => pressed && styles.pressed}>
+            <ThemedView type="backgroundElement" style={styles.logoutRow}>
+              <SymbolView
+                name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+                size={16}
+                tintColor={theme.text}
+              />
+              <ThemedText type="small">Editar perfil</ThemedText>
+            </ThemedView>
+          </Pressable>
+        </Link>
+
+        <ThemedView type="backgroundElement" style={styles.logoutRow}>
+          <SymbolView
+            name={{ ios: 'faceid', android: 'fingerprint', web: 'fingerprint' }}
+            size={16}
+            tintColor={theme.text}
+          />
+          <ThemedText type="small" style={styles.switchLabel}>
+            Desbloqueo biométrico
+          </ThemedText>
+          <Switch
+            value={biometriaActivada}
+            onValueChange={handleToggleBiometria}
+            trackColor={{ true: theme.primary }}
+          />
+        </ThemedView>
 
         <Pressable onPress={handleCerrarSesion} style={({ pressed }) => pressed && styles.pressed}>
           <ThemedView type="backgroundElement" style={styles.logoutRow}>
@@ -126,5 +170,8 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     borderRadius: Spacing.three,
     padding: Spacing.three,
+  },
+  switchLabel: {
+    flex: 1,
   },
 });

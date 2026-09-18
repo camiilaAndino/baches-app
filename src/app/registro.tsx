@@ -1,19 +1,21 @@
-import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OutlinedText } from '@/components/outlined-text';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { AuthHeader } from '@/components/auth-header';
+import { AuthSwitch } from '@/components/auth-switch';
+import { Colores } from '@/constants/auth-colors';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
-import { useTheme } from '@/hooks/use-theme';
 import { registrarUsuario } from '@/services/api';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_MIN_LENGTH = 8;
+
+type CamposRegistro = 'nombre' | 'email' | 'password' | 'passwordConfirmation' | 'terminos';
+
 export default function RegistroScreen() {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { iniciarSesion } = useAuth();
 
@@ -21,20 +23,50 @@ export default function RegistroScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [mostrarPasswordConfirmation, setMostrarPasswordConfirmation] = useState(false);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [erroresCampo, setErroresCampo] = useState<Partial<Record<CamposRegistro, string>>>({});
+
+  function validar(): boolean {
+    const errores: Partial<Record<CamposRegistro, string>> = {};
+
+    if (!nombre.trim()) {
+      errores.nombre = 'Ingresá tu nombre.';
+    }
+
+    if (!email.trim()) {
+      errores.email = 'Ingresá tu email.';
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      errores.email = 'Ingresá un email válido.';
+    }
+
+    if (!password) {
+      errores.password = 'Ingresá una contraseña.';
+    } else if (password.length < PASSWORD_MIN_LENGTH) {
+      errores.password = `Mínimo ${PASSWORD_MIN_LENGTH} caracteres.`;
+    }
+
+    if (!passwordConfirmation) {
+      errores.passwordConfirmation = 'Confirmá tu contraseña.';
+    } else if (password !== passwordConfirmation) {
+      errores.passwordConfirmation = 'Las contraseñas no coinciden.';
+    }
+
+    if (!aceptaTerminos) {
+      errores.terminos = 'Tenés que aceptar los términos y condiciones.';
+    }
+
+    setErroresCampo(errores);
+    return Object.keys(errores).length === 0;
+  }
 
   async function handleRegistrarse() {
-    if (!nombre.trim() || !email.trim() || !password) {
-      setError('Completá todos los campos.');
-      return;
-    }
-    if (password !== passwordConfirmation) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-
     setError(null);
+    if (!validar()) return;
+
     setEnviando(true);
     try {
       await registrarUsuario({
@@ -51,264 +83,315 @@ export default function RegistroScreen() {
     }
   }
 
-  function volverAlLogin() {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/login');
-    }
-  }
-
   return (
-    <ThemedView style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable
-          onPress={volverAlLogin}
-          hitSlop={8}
-          style={({ pressed }) => pressed && styles.pressed}>
-          <ThemedView type="backgroundElement" style={styles.backButtonInner}>
-            <SymbolView
-              name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-              size={16}
-              tintColor={theme.text}
-            />
-          </ThemedView>
-        </Pressable>
-      </View>
+    <View style={styles.screen}>
+      <AuthHeader showBack />
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}>
-        <View style={styles.brand}>
-          <View style={styles.brandRow}>
-            <SymbolView
-              name={{ ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }}
-              size={26}
-              tintColor={theme.primary}
-            />
-            <View style={styles.titleRow}>
-              <Text style={[styles.brandTitle, { color: theme.text }]}>Alerta</Text>
-              <OutlinedText text="Baches" style={styles.brandTitle} color={theme.primary} />
-            </View>
-          </View>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.brandSubtitle}>
-            Creá tu cuenta para reportar y seguir denuncias
-          </ThemedText>
-        </View>
+        style={styles.flex}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets>
+        <View style={styles.formCard}>
+          <Text style={styles.greeting}>Creá tu cuenta</Text>
+          <Text style={styles.subtitle}>Registrate para reportar y seguir denuncias</Text>
 
-        <ThemedView type="backgroundElement" style={styles.formCard}>
           <View style={styles.field}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Nombre
-            </ThemedText>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputWrap, erroresCampo.nombre && styles.inputWrapError]}>
               <SymbolView
                 name={{ ios: 'person', android: 'person', web: 'person' }}
                 size={16}
-                tintColor={theme.textSecondary}
+                tintColor={Colores.textMuted}
+                style={styles.inputIcon}
               />
               <TextInput
                 value={nombre}
-                onChangeText={setNombre}
+                onChangeText={(valor) => {
+                  setNombre(valor);
+                  if (erroresCampo.nombre) setErroresCampo((actuales) => ({ ...actuales, nombre: undefined }));
+                }}
                 placeholder="Tu nombre completo"
-                placeholderTextColor={theme.textSecondary}
-                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor="#a8abb1"
+                style={styles.input}
               />
             </View>
+            {erroresCampo.nombre && <Text style={styles.campoError}>{erroresCampo.nombre}</Text>}
           </View>
 
-          <View style={styles.divider} />
-
           <View style={styles.field}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Email
-            </ThemedText>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputWrap, erroresCampo.email && styles.inputWrapError]}>
               <SymbolView
                 name={{ ios: 'envelope', android: 'mail', web: 'mail' }}
                 size={16}
-                tintColor={theme.textSecondary}
+                tintColor={Colores.textMuted}
+                style={styles.inputIcon}
               />
               <TextInput
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(valor) => {
+                  setEmail(valor);
+                  if (erroresCampo.email) setErroresCampo((actuales) => ({ ...actuales, email: undefined }));
+                }}
                 placeholder="tu@email.com"
-                placeholderTextColor={theme.textSecondary}
+                placeholderTextColor="#a8abb1"
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
-                style={[styles.input, { color: theme.text }]}
+                style={styles.input}
               />
             </View>
+            {erroresCampo.email && <Text style={styles.campoError}>{erroresCampo.email}</Text>}
           </View>
 
-          <View style={styles.divider} />
-
           <View style={styles.field}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Contraseña
-            </ThemedText>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputWrap, erroresCampo.password && styles.inputWrapError]}>
               <SymbolView
                 name={{ ios: 'lock', android: 'lock', web: 'lock' }}
                 size={16}
-                tintColor={theme.textSecondary}
+                tintColor={Colores.textMuted}
+                style={styles.inputIcon}
               />
               <TextInput
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(valor) => {
+                  setPassword(valor);
+                  if (erroresCampo.password) setErroresCampo((actuales) => ({ ...actuales, password: undefined }));
+                }}
                 placeholder="••••••••"
-                placeholderTextColor={theme.textSecondary}
-                secureTextEntry
-                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor="#a8abb1"
+                secureTextEntry={!mostrarPassword}
+                style={styles.input}
               />
+              <Pressable
+                onPress={() => setMostrarPassword((valor) => !valor)}
+                hitSlop={8}
+                style={styles.toggleVisibility}>
+                <SymbolView
+                  name={
+                    mostrarPassword
+                      ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                      : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                  }
+                  size={17}
+                  tintColor={Colores.textMuted}
+                />
+              </Pressable>
             </View>
+            {erroresCampo.password && <Text style={styles.campoError}>{erroresCampo.password}</Text>}
           </View>
 
-          <View style={styles.divider} />
-
           <View style={styles.field}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Confirmar contraseña
-            </ThemedText>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputWrap, erroresCampo.passwordConfirmation && styles.inputWrapError]}>
               <SymbolView
                 name={{ ios: 'lock', android: 'lock', web: 'lock' }}
                 size={16}
-                tintColor={theme.textSecondary}
+                tintColor={Colores.textMuted}
+                style={styles.inputIcon}
               />
               <TextInput
                 value={passwordConfirmation}
-                onChangeText={setPasswordConfirmation}
+                onChangeText={(valor) => {
+                  setPasswordConfirmation(valor);
+                  if (erroresCampo.passwordConfirmation) {
+                    setErroresCampo((actuales) => ({ ...actuales, passwordConfirmation: undefined }));
+                  }
+                }}
                 placeholder="••••••••"
-                placeholderTextColor={theme.textSecondary}
-                secureTextEntry
-                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor="#a8abb1"
+                secureTextEntry={!mostrarPasswordConfirmation}
+                style={styles.input}
               />
+              <Pressable
+                onPress={() => setMostrarPasswordConfirmation((valor) => !valor)}
+                hitSlop={8}
+                style={styles.toggleVisibility}>
+                <SymbolView
+                  name={
+                    mostrarPasswordConfirmation
+                      ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                      : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                  }
+                  size={17}
+                  tintColor={Colores.textMuted}
+                />
+              </Pressable>
             </View>
-          </View>
-        </ThemedView>
-
-        {error && (
-          <ThemedView type="backgroundElement" style={styles.errorBox}>
-            <ThemedText type="small" style={{ color: '#EB5757' }}>
-              {error}
-            </ThemedText>
-          </ThemedView>
-        )}
-
-        <Pressable
-          disabled={enviando}
-          onPress={handleRegistrarse}
-          style={({ pressed }) => pressed && styles.pressed}>
-          <View style={[styles.submitButton, { backgroundColor: theme.primary, opacity: enviando ? 0.7 : 1 }]}>
-            {enviando ? (
-              <ActivityIndicator color={theme.onPrimary} />
-            ) : (
-              <ThemedText type="default" style={{ color: theme.onPrimary, fontWeight: '600' }}>
-                Crear cuenta
-              </ThemedText>
+            {erroresCampo.passwordConfirmation && (
+              <Text style={styles.campoError}>{erroresCampo.passwordConfirmation}</Text>
             )}
           </View>
-        </Pressable>
 
-        <Link href="/login" asChild>
-          <Pressable style={({ pressed }) => [styles.loginRow, pressed && styles.pressed]}>
-            <ThemedText type="small" themeColor="textSecondary">
-              ¿Ya tenés cuenta?
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.primary, fontWeight: '600' }}>
-              Iniciar sesión
-            </ThemedText>
+          <Pressable
+            onPress={() => {
+              setAceptaTerminos((valor) => !valor);
+              if (erroresCampo.terminos) setErroresCampo((actuales) => ({ ...actuales, terminos: undefined }));
+            }}
+            style={styles.checkboxRow}>
+            <View style={[styles.checkbox, aceptaTerminos && styles.checkboxMarcado]}>
+              {aceptaTerminos && <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} size={12} tintColor="#ffffff" />}
+            </View>
+            <Text style={styles.checkboxLabel}>Acepto los términos y condiciones</Text>
           </Pressable>
-        </Link>
+          {erroresCampo.terminos && <Text style={styles.campoError}>{erroresCampo.terminos}</Text>}
+
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorBoxText}>{error}</Text>
+            </View>
+          )}
+
+          <Pressable
+            disabled={enviando}
+            onPress={handleRegistrarse}
+            style={({ pressed }) => pressed && styles.pressed}>
+            <View style={[styles.submitButton, { opacity: enviando ? 0.7 : 1 }]}>
+              {enviando ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Crear cuenta</Text>
+              )}
+            </View>
+          </Pressable>
+
+          <AuthSwitch question="¿Ya tenés cuenta?" actionLabel="Iniciar sesión" href="/login" />
+        </View>
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: '#ffffff',
   },
-  header: {
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  backButtonInner: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.8,
+  flex: {
+    flex: 1,
   },
   content: {
+    flexGrow: 1,
     alignSelf: 'center',
     width: '100%',
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-  },
-  brand: {
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  titleRow: {
-    flexDirection: 'row',
-  },
-  brandTitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  brandSubtitle: {
-    textAlign: 'center',
+    justifyContent: 'flex-start',
   },
   formCard: {
-    borderRadius: Spacing.four,
-    padding: Spacing.four,
-    gap: Spacing.three,
+    backgroundColor: Colores.card,
+    borderWidth: 1,
+    borderColor: Colores.line200,
+    borderRadius: 28,
+    padding: 24,
+    paddingTop: 20,
+    marginTop: Spacing.five,
+    shadowColor: Colores.asphalt900,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  greeting: {
+    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colores.signal,
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: Colores.textMuted,
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 24,
+    alignSelf: 'center',
+    maxWidth: 260,
   },
   field: {
-    gap: Spacing.two,
+    marginBottom: 18,
   },
-  inputRow: {
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: Colores.line200,
+    borderRadius: 26,
+  },
+  inputWrapError: {
+    borderColor: '#EB5757',
+  },
+  inputIcon: {
+    marginLeft: 16,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    padding: 0,
+    color: Colores.textPrimary,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#80808040',
+  toggleVisibility: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colores.line200,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxMarcado: {
+    backgroundColor: Colores.signal,
+    borderColor: Colores.signal,
+  },
+  checkboxLabel: {
+    fontSize: 13,
+    color: Colores.textMuted,
+    flexShrink: 1,
+  },
+  pressed: {
+    opacity: 0.8,
   },
   errorBox: {
-    borderRadius: Spacing.three,
+    backgroundColor: '#FDECEC',
+    borderRadius: 8,
     padding: Spacing.three,
+    marginBottom: Spacing.two,
+  },
+  errorBoxText: {
+    fontSize: 13,
+    color: '#D64545',
+  },
+  campoError: {
+    fontSize: 12,
+    color: '#EB5757',
+    marginTop: 4,
   },
   submitButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.three,
+    paddingVertical: 15,
+    borderRadius: 28,
+    backgroundColor: Colores.signal,
+    marginTop: 4,
+    shadowColor: Colores.signalDark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.one,
-    paddingTop: Spacing.one,
+  submitButtonText: {
+    color: '#ffffff',
+    fontSize: 15.5,
+    fontWeight: '600',
   },
 });

@@ -6,6 +6,7 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ENCARNACION_CENTRO, ENCARNACION_LIMITES, ENCARNACION_ZOOM_MIN } from '@/constants/mapa';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -16,7 +17,7 @@ type Props = {
   onChange: (coords: Coordenadas) => void;
 };
 
-const REGION_POR_DEFECTO = { latitude: -25.2637, longitude: -57.5759 };
+const REGION_POR_DEFECTO = { latitude: ENCARNACION_CENTRO.lat, longitude: ENCARNACION_CENTRO.lng };
 
 function construirHtml(inicial: Coordenadas | null): string {
   const centro = inicial ?? REGION_POR_DEFECTO;
@@ -35,7 +36,13 @@ function construirHtml(inicial: Coordenadas | null): string {
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map', { attributionControl: false }).setView([${centro.latitude}, ${centro.longitude}], 16);
+    var limites = L.latLngBounds(${JSON.stringify(ENCARNACION_LIMITES)});
+    var map = L.map('map', {
+      attributionControl: false,
+      maxBounds: limites,
+      maxBoundsViscosity: 1.0,
+      minZoom: ${ENCARNACION_ZOOM_MIN},
+    }).setView([${centro.latitude}, ${centro.longitude}], 16);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
     var marker = ${marcadorInicialJs}
 
@@ -47,6 +54,7 @@ function construirHtml(inicial: Coordenadas | null): string {
     }
 
     map.on('click', function (e) {
+      if (!limites.contains(e.latlng)) return;
       moverMarcador(e.latlng.lat, e.latlng.lng);
       window.ReactNativeWebView.postMessage(JSON.stringify({ lat: e.latlng.lat, lng: e.latlng.lng }));
     });
