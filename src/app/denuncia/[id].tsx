@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthHeader } from '@/components/auth-header';
 import { DenunciaMap } from '@/components/denuncia-map';
+import { HeaderTitulo } from '@/components/header-titulo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ESTADO_API_META, PRIORIDAD_META, inferirVisualTipo } from '@/constants/denuncias';
@@ -57,19 +59,15 @@ export default function DenunciaDetalleScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable onPress={volver} hitSlop={8} style={({ pressed }) => pressed && styles.pressed}>
-          <ThemedView type="backgroundElement" style={styles.backButton}>
-            <SymbolView
-              name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-              size={16}
-              tintColor={theme.text}
-            />
-          </ThemedView>
-        </Pressable>
-        <ThemedText type="smallBold">Detalle de denuncia</ThemedText>
-        <View style={styles.backButton} />
-      </View>
+      <AuthHeader height={85}>
+        <HeaderTitulo
+          icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }}
+          subtitulo="Denuncia"
+          titulo="Detalle"
+          alVolver={volver}
+          subirContenido={5}
+        />
+      </AuthHeader>
 
       {cargando ? (
         <ActivityIndicator color={theme.primary} style={styles.loader} />
@@ -182,23 +180,6 @@ export default function DenunciaDetalleScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.8,
   },
   loader: {
     marginTop: Spacing.six,

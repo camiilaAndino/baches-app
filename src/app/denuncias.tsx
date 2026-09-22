@@ -1,29 +1,25 @@
-import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AllDenunciasMap } from '@/components/all-denuncias-map';
 import { AuthHeader } from '@/components/auth-header';
 import { BottomNav } from '@/components/bottom-nav';
 import { Chip } from '@/components/chip';
+import { HeaderTitulo } from '@/components/header-titulo';
 import { MiDenunciaCard } from '@/components/mi-denuncia-card';
-import { ProfileIcons } from '@/components/profile-header';
 import { SearchBar } from '@/components/search-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { DenunciaEstadoApi, ESTADOS_API_ORDEN, ESTADO_API_META } from '@/constants/denuncias';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { DenunciaApi, fetchDenuncias } from '@/services/api';
 
 const DENUNCIAS_POR_PAGINA = 4;
 
-export default function HomeScreen() {
+export default function DenunciasScreen() {
   const theme = useTheme();
-  const { usuario } = useAuth();
 
   const [denuncias, setDenuncias] = useState<DenunciaApi[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -46,8 +42,6 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Recarga las denuncias cada vez que se vuelve a esta pantalla (por ej. al
-  // volver de crear una denuncia nueva), no solo la primera vez que se monta.
   useFocusEffect(
     useCallback(() => {
       cargarDenuncias();
@@ -59,11 +53,10 @@ export default function HomeScreen() {
     cargarDenuncias();
   }
 
-  const misDenuncias = useMemo(() => {
+  const denunciasFiltradas = useMemo(() => {
     const busquedaNormalizada = busqueda.trim().toLowerCase();
 
     return denuncias
-      .filter((denuncia) => denuncia.usuario_id === usuario?.id)
       .filter((denuncia) => filtroEstado === 'todas' || denuncia.estado === filtroEstado)
       .filter((denuncia) => {
         if (!busquedaNormalizada) return true;
@@ -73,23 +66,28 @@ export default function HomeScreen() {
           (denuncia.direccion ?? '').toLowerCase().includes(busquedaNormalizada)
         );
       });
-  }, [denuncias, usuario?.id, filtroEstado, busqueda]);
+  }, [denuncias, filtroEstado, busqueda]);
 
   useEffect(() => {
     setPagina(0);
   }, [filtroEstado, busqueda]);
 
-  const totalPaginas = Math.max(1, Math.ceil(misDenuncias.length / DENUNCIAS_POR_PAGINA));
+  const totalPaginas = Math.max(1, Math.ceil(denunciasFiltradas.length / DENUNCIAS_POR_PAGINA));
   const paginaActual = Math.min(pagina, totalPaginas - 1);
-  const denunciasPagina = misDenuncias.slice(
+  const denunciasPagina = denunciasFiltradas.slice(
     paginaActual * DENUNCIAS_POR_PAGINA,
     paginaActual * DENUNCIAS_POR_PAGINA + DENUNCIAS_POR_PAGINA
   );
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
-      <AuthHeader height={90}>
-        <ProfileIcons />
+      <AuthHeader height={45}>
+        <HeaderTitulo
+          icono={{ ios: 'list.bullet.rectangle.fill', android: 'list_alt', web: 'list_alt' }}
+          subtitulo="Comunidad"
+          titulo="Todas las denuncias"
+          subirContenido={50}
+        />
       </AuthHeader>
 
       <ScrollView
@@ -112,116 +110,92 @@ export default function HomeScreen() {
           {cargando ? (
             <ActivityIndicator color={theme.primary} style={styles.loader} />
           ) : (
-            <>
-              <View style={styles.section}>
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
                 <ThemedText type="smallBold" style={styles.sectionTitle}>
-                  Mapa de denuncias
+                  Denuncias de la comunidad
                 </ThemedText>
-                <AllDenunciasMap denuncias={denuncias} />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {denunciasFiltradas.length}
+                </ThemedText>
               </View>
 
-              <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                  <ThemedText type="smallBold" style={styles.sectionTitle}>
-                    Mis denuncias
-                  </ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {misDenuncias.length}
-                  </ThemedText>
-                </View>
+              <SearchBar value={busqueda} onChangeText={setBusqueda} placeholder="Buscar denuncias" />
 
-                <SearchBar
-                  value={busqueda}
-                  onChangeText={setBusqueda}
-                  placeholder="Buscar en mis denuncias"
-                />
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.filterChips}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
+                <Chip label="Todas" selected={filtroEstado === 'todas'} onPress={() => setFiltroEstado('todas')} />
+                {ESTADOS_API_ORDEN.map((estado) => (
                   <Chip
-                    label="Todas"
-                    selected={filtroEstado === 'todas'}
-                    onPress={() => setFiltroEstado('todas')}
+                    key={estado}
+                    label={ESTADO_API_META[estado].label}
+                    icon={ESTADO_API_META[estado].icon}
+                    color={ESTADO_API_META[estado].color}
+                    selected={filtroEstado === estado}
+                    onPress={() => setFiltroEstado(estado)}
                   />
-                  {ESTADOS_API_ORDEN.map((estado) => (
-                    <Chip
-                      key={estado}
-                      label={ESTADO_API_META[estado].label}
-                      icon={ESTADO_API_META[estado].icon}
-                      color={ESTADO_API_META[estado].color}
-                      selected={filtroEstado === estado}
-                      onPress={() => setFiltroEstado(estado)}
+                ))}
+              </ScrollView>
+
+              <View style={styles.denunciasList}>
+                {denunciasFiltradas.length === 0 ? (
+                  <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
+                    <SymbolView
+                      name={{ ios: 'tray', android: 'inbox', web: 'inbox' }}
+                      size={22}
+                      tintColor={theme.textSecondary}
                     />
-                  ))}
-                </ScrollView>
-
-                <View style={styles.denunciasList}>
-                  {misDenuncias.length === 0 ? (
-                    <ThemedView type="backgroundElement" style={[styles.emptyState, { borderColor: theme.border }]}>
-                      <SymbolView
-                        name={{ ios: 'tray', android: 'inbox', web: 'inbox' }}
-                        size={22}
-                        tintColor={theme.textSecondary}
-                      />
-                      <ThemedText type="small" themeColor="textSecondary" style={styles.emptyStateText}>
-                        Todavía no hiciste ninguna denuncia. ¡Reportá el primer bache!
-                      </ThemedText>
-                    </ThemedView>
-                  ) : (
-                    denunciasPagina.map((denuncia) => <MiDenunciaCard key={denuncia.id} denuncia={denuncia} />)
-                  )}
-                </View>
-
-                {totalPaginas > 1 && (
-                  <View style={styles.pager}>
-                    <Pressable
-                      disabled={paginaActual === 0}
-                      onPress={() => setPagina(paginaActual - 1)}
-                      hitSlop={8}
-                      style={({ pressed }) => [
-                        styles.pagerButton,
-                        { borderColor: theme.border },
-                        paginaActual === 0 && styles.pagerButtonDisabled,
-                        pressed && styles.pressed,
-                      ]}>
-                      <SymbolView
-                        name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
-                        size={16}
-                        tintColor={paginaActual === 0 ? theme.border : theme.text}
-                      />
-                    </Pressable>
-
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {paginaActual + 1} de {totalPaginas}
+                    <ThemedText type="small" themeColor="textSecondary" style={styles.emptyStateText}>
+                      No hay denuncias que coincidan con la búsqueda.
                     </ThemedText>
-
-                    <Pressable
-                      disabled={paginaActual === totalPaginas - 1}
-                      onPress={() => setPagina(paginaActual + 1)}
-                      hitSlop={8}
-                      style={({ pressed }) => [
-                        styles.pagerButton,
-                        { borderColor: theme.border },
-                        paginaActual === totalPaginas - 1 && styles.pagerButtonDisabled,
-                        pressed && styles.pressed,
-                      ]}>
-                      <SymbolView
-                        name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-                        size={16}
-                        tintColor={paginaActual === totalPaginas - 1 ? theme.border : theme.text}
-                      />
-                    </Pressable>
-                  </View>
+                  </ThemedView>
+                ) : (
+                  denunciasPagina.map((denuncia) => <MiDenunciaCard key={denuncia.id} denuncia={denuncia} />)
                 )}
               </View>
-            </>
-          )}
 
-          <ThemedText type="code" themeColor="textSecondary" style={styles.appVersion}>
-            v{Constants.expoConfig?.version}
-          </ThemedText>
+              {totalPaginas > 1 && (
+                <View style={styles.pager}>
+                  <Pressable
+                    disabled={paginaActual === 0}
+                    onPress={() => setPagina(paginaActual - 1)}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.pagerButton,
+                      { borderColor: theme.border },
+                      paginaActual === 0 && styles.pagerButtonDisabled,
+                      pressed && styles.pressed,
+                    ]}>
+                    <SymbolView
+                      name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
+                      size={16}
+                      tintColor={paginaActual === 0 ? theme.border : theme.text}
+                    />
+                  </Pressable>
+
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {paginaActual + 1} de {totalPaginas}
+                  </ThemedText>
+
+                  <Pressable
+                    disabled={paginaActual === totalPaginas - 1}
+                    onPress={() => setPagina(paginaActual + 1)}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.pagerButton,
+                      { borderColor: theme.border },
+                      paginaActual === totalPaginas - 1 && styles.pagerButtonDisabled,
+                      pressed && styles.pressed,
+                    ]}>
+                    <SymbolView
+                      name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                      size={16}
+                      tintColor={paginaActual === totalPaginas - 1 ? theme.border : theme.text}
+                    />
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          )}
         </ThemedView>
       </ScrollView>
 
@@ -304,12 +278,5 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     textAlign: 'center',
-  },
-  appVersion: {
-    textAlign: 'center',
-    marginTop: Spacing.two,
-    fontSize: 11,
-    letterSpacing: 1,
-    opacity: 0.6,
   },
 });

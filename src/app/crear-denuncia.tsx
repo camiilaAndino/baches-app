@@ -15,7 +15,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthHeader } from '@/components/auth-header';
 import { Chip } from '@/components/chip';
+import { HeaderTitulo } from '@/components/header-titulo';
 import { LocationPickerMap } from '@/components/location-picker-map';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -162,22 +164,14 @@ export default function CrearDenunciaScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable
-          onPress={volverAlInicio}
-          hitSlop={8}
-          style={({ pressed }) => pressed && styles.pressed}>
-          <ThemedView type="backgroundElement" style={styles.closeButton}>
-            <SymbolView
-              name={{ ios: 'xmark', android: 'close', web: 'close' }}
-              size={14}
-              tintColor={theme.text}
-            />
-          </ThemedView>
-        </Pressable>
-        <ThemedText type="smallBold">Nueva denuncia</ThemedText>
-        <View style={styles.closeButton} />
-      </View>
+      <AuthHeader height={45}>
+        <HeaderTitulo
+          icono={{ ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' }}
+          subtitulo="Reportar"
+          titulo="Nueva denuncia"
+          subirContenido={50}
+        />
+      </AuthHeader>
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}>
@@ -422,20 +416,6 @@ const ExitoColor = '#2FAF64';
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.8,
