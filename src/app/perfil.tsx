@@ -1,8 +1,9 @@
 import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthHeader } from '@/components/auth-header';
+import { HeaderTitulo } from '@/components/header-titulo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -11,7 +12,6 @@ import { useTheme } from '@/hooks/use-theme';
 
 export default function PerfilScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { usuario, cerrarSesion, biometriaActivada, activarBiometria, desactivarBiometria } = useAuth();
 
   async function handleCerrarSesion() {
@@ -34,32 +34,16 @@ export default function PerfilScreen() {
     }
   }
 
-  function volverAlInicio() {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/');
-    }
-  }
-
   return (
     <ThemedView style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable
-          onPress={volverAlInicio}
-          hitSlop={8}
-          style={({ pressed }) => pressed && styles.pressed}>
-          <ThemedView type="backgroundElement" style={styles.closeButton}>
-            <SymbolView
-              name={{ ios: 'xmark', android: 'close', web: 'close' }}
-              size={14}
-              tintColor={theme.text}
-            />
-          </ThemedView>
-        </Pressable>
-        <ThemedText type="smallBold">Mi perfil</ThemedText>
-        <View style={styles.closeButton} />
-      </View>
+      <AuthHeader height={45}>
+        <HeaderTitulo
+          icono={{ ios: 'person.fill', android: 'person', web: 'person' }}
+          subtitulo="Cuenta"
+          titulo="Mi perfil"
+          subirContenido={50}
+        />
+      </AuthHeader>
 
       <View style={styles.content}>
         <View style={styles.card}>
@@ -125,20 +109,6 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.8,

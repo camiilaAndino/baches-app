@@ -1,9 +1,10 @@
-import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthHeader } from '@/components/auth-header';
+import { HeaderTitulo } from '@/components/header-titulo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -38,14 +39,6 @@ export default function EditarPerfilScreen() {
   const [enviandoPassword, setEnviandoPassword] = useState(false);
   const [errorPassword, setErrorPassword] = useState<string | null>(null);
   const [passwordGuardada, setPasswordGuardada] = useState(false);
-
-  function volver() {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/perfil');
-    }
-  }
 
   function validarPerfil(): boolean {
     const errores: Partial<Record<CamposPerfil, string>> = {};
@@ -125,19 +118,14 @@ export default function EditarPerfilScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <Pressable onPress={volver} hitSlop={8} style={({ pressed }) => pressed && styles.pressed}>
-          <ThemedView type="backgroundElement" style={styles.closeButton}>
-            <SymbolView
-              name={{ ios: 'xmark', android: 'close', web: 'close' }}
-              size={14}
-              tintColor={theme.text}
-            />
-          </ThemedView>
-        </Pressable>
-        <ThemedText type="smallBold">Editar perfil</ThemedText>
-        <View style={styles.closeButton} />
-      </View>
+      <AuthHeader height={45}>
+        <HeaderTitulo
+          icono={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+          subtitulo="Cuenta"
+          titulo="Editar perfil"
+          subirContenido={50}
+        />
+      </AuthHeader>
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}
@@ -343,20 +331,6 @@ export default function EditarPerfilScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.8,

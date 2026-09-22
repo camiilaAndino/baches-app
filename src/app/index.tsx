@@ -1,22 +1,25 @@
-import { Link, useFocusEffect } from 'expo-router';
+import Constants from 'expo-constants';
+import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AllDenunciasMap } from '@/components/all-denuncias-map';
 import { AuthHeader } from '@/components/auth-header';
+import { BottomNav } from '@/components/bottom-nav';
 import { Chip } from '@/components/chip';
 import { MiDenunciaCard } from '@/components/mi-denuncia-card';
 import { ProfileIcons } from '@/components/profile-header';
 import { SearchBar } from '@/components/search-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
 import { DenunciaEstadoApi, ESTADOS_API_ORDEN, ESTADO_API_META } from '@/constants/denuncias';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { DenunciaApi, fetchDenuncias } from '@/services/api';
+
+const DENUNCIAS_POR_PAGINA = 4;
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -28,6 +31,7 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<DenunciaEstadoApi | 'todas'>('todas');
+  const [pagina, setPagina] = useState(0);
 
   const cargarDenuncias = useCallback(async () => {
     try {
@@ -71,6 +75,17 @@ export default function HomeScreen() {
       });
   }, [denuncias, usuario?.id, filtroEstado, busqueda]);
 
+  useEffect(() => {
+    setPagina(0);
+  }, [filtroEstado, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(misDenuncias.length / DENUNCIAS_POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas - 1);
+  const denunciasPagina = misDenuncias.slice(
+    paginaActual * DENUNCIAS_POR_PAGINA,
+    paginaActual * DENUNCIAS_POR_PAGINA + DENUNCIAS_POR_PAGINA
+  );
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <AuthHeader height={90}>
@@ -82,23 +97,6 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.contentContainer, { paddingTop: Spacing.four }]}
         refreshControl={<RefreshControl refreshing={refrescando} onRefresh={handleRefresh} />}>
         <ThemedView style={styles.container}>
-          <View style={styles.section}>
-            <Link href="/crear-denuncia" asChild>
-              <Pressable style={({ pressed }) => pressed && styles.pressed}>
-                <View style={[styles.primaryButton, { backgroundColor: theme.primary }]}>
-                  <SymbolView
-                    name={{ ios: 'plus.circle.fill', android: 'add', web: 'add' }}
-                    size={18}
-                    tintColor={theme.onPrimary}
-                  />
-                  <ThemedText type="default" style={{ color: theme.onPrimary, fontWeight: '600' }}>
-                    Hacer una denuncia
-                  </ThemedText>
-                </View>
-              </Pressable>
-            </Link>
-          </View>
-
           {error && (
             <View style={styles.section}>
               <Pressable onPress={() => cargarDenuncias()} style={({ pressed }) => pressed && styles.pressed}>
@@ -172,16 +170,62 @@ export default function HomeScreen() {
                       </ThemedText>
                     </ThemedView>
                   ) : (
-                    misDenuncias.map((denuncia) => <MiDenunciaCard key={denuncia.id} denuncia={denuncia} />)
+                    denunciasPagina.map((denuncia) => <MiDenunciaCard key={denuncia.id} denuncia={denuncia} />)
                   )}
                 </View>
+
+                {totalPaginas > 1 && (
+                  <View style={styles.pager}>
+                    <Pressable
+                      disabled={paginaActual === 0}
+                      onPress={() => setPagina(paginaActual - 1)}
+                      hitSlop={8}
+                      style={({ pressed }) => [
+                        styles.pagerButton,
+                        { borderColor: theme.border },
+                        paginaActual === 0 && styles.pagerButtonDisabled,
+                        pressed && styles.pressed,
+                      ]}>
+                      <SymbolView
+                        name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }}
+                        size={16}
+                        tintColor={paginaActual === 0 ? theme.border : theme.text}
+                      />
+                    </Pressable>
+
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {paginaActual + 1} de {totalPaginas}
+                    </ThemedText>
+
+                    <Pressable
+                      disabled={paginaActual === totalPaginas - 1}
+                      onPress={() => setPagina(paginaActual + 1)}
+                      hitSlop={8}
+                      style={({ pressed }) => [
+                        styles.pagerButton,
+                        { borderColor: theme.border },
+                        paginaActual === totalPaginas - 1 && styles.pagerButtonDisabled,
+                        pressed && styles.pressed,
+                      ]}>
+                      <SymbolView
+                        name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                        size={16}
+                        tintColor={paginaActual === totalPaginas - 1 ? theme.border : theme.text}
+                      />
+                    </Pressable>
+                  </View>
+                )}
               </View>
             </>
           )}
 
-          {Platform.OS === 'web' && <WebBadge />}
+          <ThemedText type="code" themeColor="textSecondary" style={styles.appVersion}>
+            v{Constants.expoConfig?.version}
+          </ThemedText>
         </ThemedView>
       </ScrollView>
+
+      <BottomNav />
     </View>
   );
 }
@@ -196,7 +240,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingBottom: Spacing.five,
+    paddingBottom: Spacing.six + Spacing.five,
   },
   container: {
     maxWidth: MaxContentWidth,
@@ -218,14 +262,6 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.8,
   },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.three,
-    borderRadius: 28,
-  },
   errorBox: {
     borderRadius: Spacing.three,
     padding: Spacing.three,
@@ -241,6 +277,24 @@ const styles = StyleSheet.create({
   denunciasList: {
     gap: Spacing.two,
   },
+  pager: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.four,
+    marginTop: Spacing.two,
+  },
+  pagerButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pagerButtonDisabled: {
+    opacity: 0.4,
+  },
   emptyState: {
     alignItems: 'center',
     gap: Spacing.two,
@@ -250,5 +304,12 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     textAlign: 'center',
+  },
+  appVersion: {
+    textAlign: 'center',
+    marginTop: Spacing.two,
+    fontSize: 11,
+    letterSpacing: 1,
+    opacity: 0.6,
   },
 });

@@ -35,6 +35,7 @@ function RootNavigation() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!usuario}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="denuncias" />
         <Stack.Screen name="crear-denuncia" options={{ presentation: 'modal' }} />
         <Stack.Screen name="perfil" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notificaciones" options={{ presentation: 'modal' }} />

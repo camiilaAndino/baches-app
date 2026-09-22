@@ -87,159 +87,163 @@ export default function LoginScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets>
-        <View style={styles.formCard}>
-          {puedeUsarBiometria && (
-            <View style={styles.modoTabs}>
-              <Pressable
-                style={[styles.modoTab, modo === 'biometrico' && styles.modoTabActivo]}
-                onPress={() => setModo('biometrico')}>
-                <Text style={[styles.modoTabTexto, modo === 'biometrico' && styles.modoTabTextoActivo]}>
-                  Biometría
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modoTab, modo === 'password' && styles.modoTabActivo]}
-                onPress={() => setModo('password')}>
-                <Text style={[styles.modoTabTexto, modo === 'password' && styles.modoTabTextoActivo]}>
-                  Contraseña
-                </Text>
-              </Pressable>
-            </View>
-          )}
-
-          {modo === 'biometrico' && cuentaRecordada ? (
-            <View style={styles.biometricoBlock}>
-              <View style={styles.biometricoIcono}>
-                <SymbolView
-                  name={{ ios: 'faceid', android: 'fingerprint', web: 'fingerprint' }}
-                  size={30}
-                  tintColor={Colores.signal}
-                />
+          <View style={styles.formCard}>
+            {puedeUsarBiometria && (
+              <View style={styles.modoTabs}>
+                <Pressable
+                  style={[styles.modoTab, modo === 'biometrico' && styles.modoTabActivo]}
+                  onPress={() => setModo('biometrico')}>
+                  <Text style={[styles.modoTabTexto, modo === 'biometrico' && styles.modoTabTextoActivo]}>
+                    Biometría
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modoTab, modo === 'password' && styles.modoTabActivo]}
+                  onPress={() => setModo('password')}>
+                  <Text style={[styles.modoTabTexto, modo === 'password' && styles.modoTabTextoActivo]}>
+                    Contraseña
+                  </Text>
+                </Pressable>
               </View>
+            )}
 
-              <Text style={styles.greeting}>¡Hola, {cuentaRecordada.name.split(' ')[0]}!</Text>
-              <Text style={styles.subtitle}>Confirmá tu identidad para ingresar</Text>
-
-              {errorBiometria && (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorBoxText}>{errorBiometria}</Text>
-                </View>
-              )}
-
-              <Pressable
-                disabled={enviandoBiometria}
-                onPress={handleIniciarSesionBiometrica}
-                style={({ pressed }) => pressed && styles.pressed}>
-                <View style={[styles.submitButton, { opacity: enviandoBiometria ? 0.7 : 1 }]}>
-                  {enviandoBiometria ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.submitButtonText}>Ingresar con biometría</Text>
-                  )}
-                </View>
-              </Pressable>
-
-              <Pressable onPress={handleUsarOtraCuenta} style={({ pressed }) => pressed && styles.pressed}>
-                <Text style={styles.otraCuenta}>¿No sos {cuentaRecordada.name.split(' ')[0]}? Usar otra cuenta</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.greeting}>¡Hola!</Text>
-              <Text style={styles.subtitle}>Iniciá sesión para reportar y seguir el estado de tus denuncias</Text>
-
-              <View style={styles.field}>
-                <View style={[styles.inputWrap, erroresCampo.email && styles.inputWrapError]}>
+            {modo === 'biometrico' && cuentaRecordada ? (
+              <View style={styles.biometricoBlock}>
+                <View style={styles.biometricoIcono}>
                   <SymbolView
-                    name={{ ios: 'envelope', android: 'mail', web: 'mail' }}
-                    size={16}
-                    tintColor={Colores.textMuted}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    value={email}
-                    onChangeText={(valor) => {
-                      setEmail(valor);
-                      if (erroresCampo.email) setErroresCampo((actuales) => ({ ...actuales, email: undefined }));
-                    }}
-                    placeholder="Email"
-                    placeholderTextColor="#a8abb1"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    style={styles.input}
+                    name={{ ios: 'faceid', android: 'fingerprint', web: 'fingerprint' }}
+                    size={30}
+                    tintColor={Colores.signal}
                   />
                 </View>
-                {erroresCampo.email && <Text style={styles.campoError}>{erroresCampo.email}</Text>}
+
+                <Text style={styles.greeting}>¡Hola, {cuentaRecordada.name.split(' ')[0]}!</Text>
+                <Text style={styles.subtitle}>Confirmá tu identidad para ingresar</Text>
+
+                {errorBiometria && (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorBoxText}>{errorBiometria}</Text>
+                  </View>
+                )}
+
+                <Pressable
+                  disabled={enviandoBiometria}
+                  onPress={handleIniciarSesionBiometrica}
+                  style={({ pressed }) => [styles.botonAnchoCompleto, pressed && styles.pressed]}>
+                  <View style={[styles.submitButton, { opacity: enviandoBiometria ? 0.7 : 1 }]}>
+                    {enviandoBiometria ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={styles.submitButtonText}>Ingresar con biometría</Text>
+                    )}
+                  </View>
+                </Pressable>
+
+                <Pressable onPress={handleUsarOtraCuenta} style={({ pressed }) => pressed && styles.pressed}>
+                  <Text style={styles.otraCuenta}>
+                    ¿No sos {cuentaRecordada.name.split(' ')[0]}? Usar otra cuenta
+                  </Text>
+                </Pressable>
               </View>
+            ) : (
+              <>
+                <Text style={styles.greeting}>¡Hola!</Text>
+                <Text style={styles.subtitle}>Iniciá sesión para reportar y seguir el estado de tus denuncias</Text>
 
-              <View style={styles.field}>
-                <View style={[styles.inputWrap, erroresCampo.password && styles.inputWrapError]}>
-                  <SymbolView
-                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
-                    size={16}
-                    tintColor={Colores.textMuted}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    value={password}
-                    onChangeText={(valor) => {
-                      setPassword(valor);
-                      if (erroresCampo.password) setErroresCampo((actuales) => ({ ...actuales, password: undefined }));
-                    }}
-                    placeholder="Contraseña"
-                    placeholderTextColor="#a8abb1"
-                    secureTextEntry={!mostrarPassword}
-                    autoComplete="password"
-                    style={styles.input}
-                  />
-                  <Pressable
-                    onPress={() => setMostrarPassword((valor) => !valor)}
-                    hitSlop={8}
-                    style={styles.toggleVisibility}>
+                <View style={styles.field}>
+                  <View style={[styles.inputWrap, erroresCampo.email && styles.inputWrapError]}>
                     <SymbolView
-                      name={
-                        mostrarPassword
-                          ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
-                          : { ios: 'eye', android: 'visibility', web: 'visibility' }
-                      }
-                      size={17}
+                      name={{ ios: 'envelope', android: 'mail', web: 'mail' }}
+                      size={16}
                       tintColor={Colores.textMuted}
+                      style={styles.inputIcon}
                     />
-                  </Pressable>
+                    <TextInput
+                      value={email}
+                      onChangeText={(valor) => {
+                        setEmail(valor);
+                        if (erroresCampo.email) setErroresCampo((actuales) => ({ ...actuales, email: undefined }));
+                      }}
+                      placeholder="Email"
+                      placeholderTextColor="#a8abb1"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      keyboardType="email-address"
+                      style={styles.input}
+                    />
+                  </View>
+                  {erroresCampo.email && <Text style={styles.campoError}>{erroresCampo.email}</Text>}
                 </View>
-                {erroresCampo.password && <Text style={styles.campoError}>{erroresCampo.password}</Text>}
 
-                <Link href="/recuperar-password" asChild>
-                  <Pressable style={({ pressed }) => pressed && styles.pressed}>
-                    <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
-                  </Pressable>
-                </Link>
-              </View>
+                <View style={styles.field}>
+                  <View style={[styles.inputWrap, erroresCampo.password && styles.inputWrapError]}>
+                    <SymbolView
+                      name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                      size={16}
+                      tintColor={Colores.textMuted}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      value={password}
+                      onChangeText={(valor) => {
+                        setPassword(valor);
+                        if (erroresCampo.password) {
+                          setErroresCampo((actuales) => ({ ...actuales, password: undefined }));
+                        }
+                      }}
+                      placeholder="Contraseña"
+                      placeholderTextColor="#a8abb1"
+                      secureTextEntry={!mostrarPassword}
+                      autoComplete="password"
+                      style={styles.input}
+                    />
+                    <Pressable
+                      onPress={() => setMostrarPassword((valor) => !valor)}
+                      hitSlop={8}
+                      style={styles.toggleVisibility}>
+                      <SymbolView
+                        name={
+                          mostrarPassword
+                            ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                            : { ios: 'eye', android: 'visibility', web: 'visibility' }
+                        }
+                        size={17}
+                        tintColor={Colores.textMuted}
+                      />
+                    </Pressable>
+                  </View>
+                  {erroresCampo.password && <Text style={styles.campoError}>{erroresCampo.password}</Text>}
 
-              {error && (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorBoxText}>{error}</Text>
+                  <Link href="/recuperar-password" asChild>
+                    <Pressable style={({ pressed }) => pressed && styles.pressed}>
+                      <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
+                    </Pressable>
+                  </Link>
                 </View>
-              )}
 
-              <Pressable
-                disabled={enviando}
-                onPress={handleIniciarSesion}
-                style={({ pressed }) => pressed && styles.pressed}>
-                <View style={[styles.submitButton, { opacity: enviando ? 0.7 : 1 }]}>
-                  {enviando ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.submitButtonText}>Ingresar</Text>
-                  )}
-                </View>
-              </Pressable>
-            </>
-          )}
+                {error && (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorBoxText}>{error}</Text>
+                  </View>
+                )}
 
-          <AuthSwitch question="¿No tenés cuenta?" actionLabel="Crear una cuenta" href="/registro" />
-        </View>
+                <Pressable
+                  disabled={enviando}
+                  onPress={handleIniciarSesion}
+                  style={({ pressed }) => pressed && styles.pressed}>
+                  <View style={[styles.submitButton, { opacity: enviando ? 0.7 : 1 }]}>
+                    {enviando ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={styles.submitButtonText}>Ingresar</Text>
+                    )}
+                  </View>
+                </Pressable>
+              </>
+            )}
+
+            <AuthSwitch question="¿No tenés cuenta?" actionLabel="Crear una cuenta" href="/registro" />
+          </View>
       </ScrollView>
     </View>
   );
@@ -306,6 +310,9 @@ const styles = StyleSheet.create({
   },
   biometricoBlock: {
     alignItems: 'center',
+  },
+  botonAnchoCompleto: {
+    alignSelf: 'stretch',
   },
   biometricoIcono: {
     width: 64,

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MiApp",
+    "name": "Alerta Baches",
     "slug": "MiApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.alertabaches.miapp",
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
+        "backgroundColor": "#1c1f24",
         "foregroundImage": "./assets/images/logo_app.png"
       },
       "predictiveBackGestureEnabled": false,
