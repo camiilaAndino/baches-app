@@ -30,7 +30,22 @@ export type UsuarioAutenticado = {
   id: number;
   name: string;
   email: string;
+  fotoPerfilUrl: string | null;
 };
+
+function mapearUsuario(data: {
+  id: number;
+  name: string;
+  email: string;
+  foto_perfil_url: string | null;
+}): UsuarioAutenticado {
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    fotoPerfilUrl: data.foto_perfil_url,
+  };
+}
 
 /**
  * TODO (backend): todavía no existe `POST /api/login` en baches-web.
@@ -49,7 +64,7 @@ export async function loginUsuario(email: string, password: string): Promise<Usu
   }
 
   const json = await response.json();
-  return json.data as UsuarioAutenticado;
+  return mapearUsuario(json.data);
 }
 
 export type NuevoUsuarioPayload = {
@@ -81,7 +96,7 @@ export async function registrarUsuario(payload: NuevoUsuarioPayload): Promise<Us
   }
 
   const json = await response.json();
-  return json.data as UsuarioAutenticado;
+  return mapearUsuario(json.data);
 }
 
 export type ActualizarPerfilPayload = {
@@ -101,7 +116,7 @@ export async function actualizarPerfil(usuarioId: number, payload: ActualizarPer
   }
 
   const json = await response.json();
-  return json.data as UsuarioAutenticado;
+  return mapearUsuario(json.data);
 }
 
 export type ActualizarPasswordPayload = {
@@ -123,6 +138,88 @@ export async function actualizarPassword(usuarioId: number, payload: ActualizarP
 
   if (!response.ok) {
     throw new Error(await extraerMensajeDeError(response, 'No se pudo actualizar la contraseña.'));
+  }
+}
+
+export async function actualizarFotoPerfil(usuarioId: number, foto: FotoParaSubir): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    const formData = new FormData();
+    if (foto.file) formData.append('foto', foto.file, foto.name);
+
+    const response = await fetch(`${API_BASE_URL}/perfil/${usuarioId}/foto`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(await extraerMensajeDeError(response, 'No se pudo actualizar la foto de perfil.'));
+    }
+
+    const json = await response.json();
+    return json.data.foto_perfil_url as string | null;
+  }
+
+  // Nativo (iOS/Android): mismo bug de FormData con archivos que en crearDenuncia,
+  // se sube con el subsistema nativo de subida de expo-file-system.
+  const archivo = new ArchivoNativo(foto.uri);
+  const resultado = await archivo.upload(`${API_BASE_URL}/perfil/${usuarioId}/foto`, {
+    uploadType: UploadType.MULTIPART,
+    fieldName: 'foto',
+    mimeType: foto.type,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (resultado.status >= 400) {
+    throw new Error('No se pudo actualizar la foto de perfil.');
+  }
+
+  const json = JSON.parse(resultado.body);
+  return json.data.foto_perfil_url as string | null;
+}
+
+/**
+ * Solo confirma que exista una cuenta con ese email. El envío del PIN de
+ * recuperación por correo todavía no está implementado (falta el paso 2).
+ */
+export async function verificarEmailRecuperacion(email: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/recuperar-password/verificar-email`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extraerMensajeDeError(response, 'No encontramos ninguna cuenta con ese correo.'));
+  }
+}
+
+export type RestablecerPasswordPayload = {
+  email: string;
+  codigo: string;
+  password: string;
+  passwordConfirmation: string;
+};
+
+/**
+ * Todavía no hay envío de correo (paso pendiente): por ahora el código se
+ * genera en `verificarEmailRecuperacion` y hay que consultarlo directo en la
+ * base de datos para probar este flujo.
+ */
+export async function restablecerPassword(payload: RestablecerPasswordPayload): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/recuperar-password/restablecer`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: payload.email,
+      codigo: payload.codigo,
+      password: payload.password,
+      password_confirmation: payload.passwordConfirmation,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extraerMensajeDeError(response, 'No se pudo restablecer la contraseña.'));
   }
 }
 
@@ -164,6 +261,60 @@ export async function fetchDenuncias(): Promise<DenunciaApi[]> {
 
   const json = await response.json();
   return json.data as DenunciaApi[];
+}
+
+export type NotificacionApi = {
+  id: number;
+  denunciaId: number;
+  estado: DenunciaEstadoApi;
+  leido: boolean;
+  createdAt: string;
+  tipoDenuncia: string | null;
+  direccion: string | null;
+};
+
+function mapearNotificacion(data: {
+  id: number;
+  denuncia_id: number;
+  estado: DenunciaEstadoApi;
+  leido: boolean;
+  created_at: string;
+  tipo_denuncia: string | null;
+  direccion: string | null;
+}): NotificacionApi {
+  return {
+    id: data.id,
+    denunciaId: data.denuncia_id,
+    estado: data.estado,
+    leido: data.leido,
+    createdAt: data.created_at,
+    tipoDenuncia: data.tipo_denuncia,
+    direccion: data.direccion,
+  };
+}
+
+export async function fetchNotificaciones(usuarioId: number): Promise<NotificacionApi[]> {
+  const response = await fetch(`${API_BASE_URL}/notificaciones/${usuarioId}`, {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudieron cargar las notificaciones.');
+  }
+
+  const json = await response.json();
+  return (json.data as Parameters<typeof mapearNotificacion>[0][]).map(mapearNotificacion);
+}
+
+export async function marcarNotificacionLeida(notificacionId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/notificaciones/${notificacionId}/leido`, {
+    method: 'PATCH',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo marcar la notificación como leída.');
+  }
 }
 
 export type FotoParaSubir = {

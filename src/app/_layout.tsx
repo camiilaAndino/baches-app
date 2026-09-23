@@ -46,6 +46,7 @@ function RootNavigation() {
         <Stack.Screen name="login" />
         <Stack.Screen name="registro" />
         <Stack.Screen name="recuperar-password" />
+        <Stack.Screen name="restablecer-password" />
       </Stack.Protected>
     </Stack>
   );
