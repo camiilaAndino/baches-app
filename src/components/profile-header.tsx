@@ -1,25 +1,42 @@
-import { router } from 'expo-router';
+import { Image } from 'expo-image';
+import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
+import { fetchNotificaciones } from '@/services/api';
 
 export function ProfileIcons() {
   const theme = useTheme();
   const { usuario } = useAuth();
+  const [noVistas, setNoVistas] = useState(0);
   const iniciales = usuario?.name?.slice(0, 2).toUpperCase() ?? '??';
   const primerNombre = usuario?.name?.split(' ')[0] ?? 'vecino/a';
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!usuario) return;
+      fetchNotificaciones(usuario.id)
+        .then((data) => setNoVistas(data.filter((notificacion) => !notificacion.leido).length))
+        .catch(() => {});
+    }, [usuario])
+  );
 
   return (
     <View style={styles.row}>
       <Pressable onPress={() => router.push('/perfil')}>
         <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-          <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
-            {iniciales}
-          </ThemedText>
+          {usuario?.fotoPerfilUrl ? (
+            <Image source={{ uri: usuario.fotoPerfilUrl }} style={styles.avatarImage} contentFit="cover" />
+          ) : (
+            <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
+              {iniciales}
+            </ThemedText>
+          )}
         </View>
       </Pressable>
 
@@ -43,6 +60,13 @@ export function ProfileIcons() {
             size={16}
             tintColor="#ffffff"
           />
+          {noVistas > 0 && (
+            <View style={styles.badge}>
+              <ThemedText type="small" style={styles.badgeText}>
+                {noVistas > 9 ? '9+' : noVistas}
+              </ThemedText>
+            </View>
+          )}
         </View>
       </Pressable>
 
@@ -76,6 +100,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   texts: {
     marginLeft: Spacing.two,
@@ -94,5 +123,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EB5757',
+    borderWidth: 1.5,
+    borderColor: '#1c1f24',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '700',
   },
 });

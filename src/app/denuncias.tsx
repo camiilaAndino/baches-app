@@ -81,12 +81,12 @@ export default function DenunciasScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
-      <AuthHeader height={45}>
+      <AuthHeader height={90}>
         <HeaderTitulo
           icono={{ ios: 'list.bullet.rectangle.fill', android: 'list_alt', web: 'list_alt' }}
           subtitulo="Comunidad"
           titulo="Todas las denuncias"
-          subirContenido={50}
+          subirContenido={5}
         />
       </AuthHeader>
 
