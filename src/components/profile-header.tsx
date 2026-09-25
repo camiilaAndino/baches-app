@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
-import { fetchNotificaciones } from '@/services/api';
+import { fetchNotificaciones, urlDelServidor } from '@/services/api';
 
 export function ProfileIcons() {
   const theme = useTheme();
@@ -31,7 +31,7 @@ export function ProfileIcons() {
       <Pressable onPress={() => router.push('/perfil')}>
         <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
           {usuario?.fotoPerfilUrl ? (
-            <Image source={{ uri: usuario.fotoPerfilUrl }} style={styles.avatarImage} contentFit="cover" />
+            <Image source={{ uri: urlDelServidor(usuario.fotoPerfilUrl) }} style={styles.avatarImage} contentFit="cover" />
           ) : (
             <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
               {iniciales}

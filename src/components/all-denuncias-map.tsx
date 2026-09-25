@@ -12,25 +12,13 @@ import { ENCARNACION_CENTRO, ENCARNACION_LIMITES, ENCARNACION_ZOOM_MIN } from '@
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { DenunciaApi } from '@/services/api';
+import { Coordenadas, distanciaMetros } from '@/utils/distancia';
 
 type Props = {
   denuncias: DenunciaApi[];
 };
 
-type Coordenadas = { lat: number; lng: number };
-
 const RADIO_CERCA_METROS = 1500;
-
-function distanciaMetros(a: Coordenadas, b: Coordenadas): number {
-  const R = 6371000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 
 function construirHtml(denuncias: DenunciaApi[], ubicacionUsuario: Coordenadas | null): string {
   const denunciasAMostrar = ubicacionUsuario
@@ -136,19 +124,25 @@ function construirHtml(denuncias: DenunciaApi[], ubicacionUsuario: Coordenadas |
 </html>`;
 }
 
-function Leyenda() {
+/** Leyenda de estados que flota sobre la parte inferior del mapa. */
+function Leyenda({ bottomOffset }: { bottomOffset: number }) {
+  const theme = useTheme();
+
   return (
-    <View style={styles.legendRow}>
-      {(Object.keys(ESTADO_API_META) as (keyof typeof ESTADO_API_META)[]).map((estado) => (
-        <View key={estado} style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: ESTADO_API_META[estado].color }]}>
-            <SymbolView name={ESTADO_API_META[estado].icon} size={9} tintColor="#ffffff" />
+    <View pointerEvents="none" style={[styles.legendFloating, { bottom: bottomOffset }]}>
+      {/* Sufijo hex "E6" = ~90% de opacidad, para que se intuya el mapa detrás. */}
+      <View style={[styles.legendRow, { backgroundColor: `${theme.background}E6`, borderColor: theme.border }]}>
+        {(Object.keys(ESTADO_API_META) as (keyof typeof ESTADO_API_META)[]).map((estado) => (
+          <View key={estado} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: ESTADO_API_META[estado].color }]}>
+              <SymbolView name={ESTADO_API_META[estado].icon} size={9} tintColor="#ffffff" />
+            </View>
+            <ThemedText type="small" style={styles.legendText}>
+              {ESTADO_API_META[estado].label}
+            </ThemedText>
           </View>
-          <ThemedText type="small" themeColor="textSecondary">
-            {ESTADO_API_META[estado].label}
-          </ThemedText>
-        </View>
-      ))}
+        ))}
+      </View>
     </View>
   );
 }
@@ -251,11 +245,11 @@ export function AllDenunciasMap({ denuncias }: Props) {
         </Pressable>
 
         {renderBotonCercaDeMi(Spacing.two)}
+
+        <Leyenda bottomOffset={Spacing.two} />
       </View>
 
       {infoTexto}
-
-      <Leyenda />
 
       <Modal visible={pantallaCompleta} animationType="slide" onRequestClose={() => setPantallaCompleta(false)}>
         <View style={[styles.pantallaCompleta, { backgroundColor: theme.background }]}>
@@ -276,12 +270,15 @@ export function AllDenunciasMap({ denuncias }: Props) {
             </Pressable>
 
             {renderBotonCercaDeMi(insets.top + Spacing.two)}
+
+            <Leyenda bottomOffset={(infoTexto ? Spacing.two : insets.bottom) + Spacing.two} />
           </View>
 
-          <View style={[styles.pantallaCompletaFooter, { paddingBottom: insets.bottom + Spacing.two }]}>
-            {infoTexto}
-            <Leyenda />
-          </View>
+          {infoTexto && (
+            <View style={[styles.pantallaCompletaFooter, { paddingBottom: insets.bottom + Spacing.two }]}>
+              {infoTexto}
+            </View>
+          )}
         </View>
       </Modal>
     </View>
@@ -363,10 +360,31 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.8,
   },
+  legendFloating: {
+    position: 'absolute',
+    left: Spacing.two,
+    right: Spacing.two,
+    alignItems: 'center',
+  },
   legendRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.three,
+    justifyContent: 'center',
+    columnGap: Spacing.three,
+    rowGap: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  legendText: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   legendItem: {
     flexDirection: 'row',

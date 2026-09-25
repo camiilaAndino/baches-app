@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ESTADO_API_META, inferirVisualTipo } from '@/constants/denuncias';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DenunciaApi } from '@/services/api';
+import { DenunciaApi, urlDelServidor } from '@/services/api';
 
 export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
   const theme = useTheme();
@@ -27,7 +27,7 @@ export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
         style={({ pressed }) => pressed && styles.pressed}>
         <View style={styles.headerRow}>
           {denuncia.fotos_urls[0] ? (
-            <Image source={{ uri: denuncia.fotos_urls[0] }} style={styles.thumb} contentFit="cover" />
+            <Image source={{ uri: urlDelServidor(denuncia.fotos_urls[0]) }} style={styles.thumb} contentFit="cover" />
           ) : (
             <View style={[styles.typeIcon, { backgroundColor: `${visualTipo.color}26` }]}>
               <SymbolView name={visualTipo.icon} size={18} tintColor={visualTipo.color} />

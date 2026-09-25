@@ -7,6 +7,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -73,18 +74,43 @@ export default function CrearDenunciaScreen() {
     }
   }
 
-  async function agregarFotos() {
-    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permiso.granted) {
-      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para adjuntar fotos.');
+  function elegirOrigenFotos() {
+    // En web, Alert.alert no muestra botones: se abre directo el selector de archivos.
+    if (Platform.OS === 'web') {
+      agregarFotos('galeria');
       return;
     }
 
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      quality: 0.7,
-    });
+    Alert.alert('Agregar fotos', '¿De dónde querés agregar la foto?', [
+      { text: 'Tomar foto', onPress: () => agregarFotos('camara') },
+      { text: 'Elegir de la galería', onPress: () => agregarFotos('galeria') },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  }
+
+  async function agregarFotos(origen: 'camara' | 'galeria') {
+    const permiso =
+      origen === 'camara'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert(
+        'Permiso necesario',
+        origen === 'camara'
+          ? 'Necesitamos acceso a tu cámara para tomar fotos.'
+          : 'Necesitamos acceso a tu galería para adjuntar fotos.',
+      );
+      return;
+    }
+
+    const resultado =
+      origen === 'camara'
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsMultipleSelection: true,
+            quality: 0.7,
+          });
 
     if (resultado.canceled) return;
 
@@ -335,7 +361,7 @@ export default function CrearDenunciaScreen() {
             </View>
           )}
 
-          <Pressable onPress={agregarFotos} style={({ pressed }) => pressed && styles.pressed}>
+          <Pressable onPress={elegirOrigenFotos}style={({ pressed }) => pressed && styles.pressed}>
             <ThemedView type="backgroundElement" style={styles.attachBox}>
               <SymbolView
                 name={{ ios: 'camera', android: 'photo_camera', web: 'photo_camera' }}

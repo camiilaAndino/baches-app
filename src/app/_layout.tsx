@@ -3,6 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { LockScreen } from '@/components/lock-screen';
+import { AlertasCercaniaProvider } from '@/contexts/alertas-cercania-context';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -13,8 +14,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <AnimatedSplashOverlay />
-        <RootNavigation />
+        <AlertasCercaniaProvider>
+          <AnimatedSplashOverlay />
+          <RootNavigation />
+        </AlertasCercaniaProvider>
       </AuthProvider>
     </ThemeProvider>
   );

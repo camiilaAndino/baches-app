@@ -3,21 +3,23 @@ import * as ImagePicker from 'expo-image-picker';
 import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { AuthHeader } from '@/components/auth-header';
 import { HeaderTitulo } from '@/components/header-titulo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAlertasCercania } from '@/contexts/alertas-cercania-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
-import { actualizarFotoPerfil } from '@/services/api';
+import { actualizarFotoPerfil, urlDelServidor } from '@/services/api';
 
 export default function PerfilScreen() {
   const theme = useTheme();
   const { usuario, cerrarSesion, biometriaActivada, activarBiometria, desactivarBiometria, actualizarUsuario } =
     useAuth();
+  const { alertasActivadas, activarAlertas, desactivarAlertas } = useAlertasCercania();
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   async function handleCerrarSesion() {
@@ -37,6 +39,20 @@ export default function PerfilScreen() {
         'No se pudo activar',
         'Tu dispositivo no tiene huella/Face ID configurado, o no pudimos verificar tu identidad.'
       );
+    }
+  }
+
+  async function handleToggleAlertas(valor: boolean) {
+    if (!valor) {
+      await desactivarAlertas();
+      return;
+    }
+
+    const resultado = await activarAlertas();
+    if (resultado === 'sin-ubicacion') {
+      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu ubicación para avisarte de reportes cercanos.');
+    } else if (resultado === 'sin-notificaciones') {
+      Alert.alert('Permiso necesario', 'Necesitamos permiso para mostrarte notificaciones.');
     }
   }
 
@@ -91,7 +107,7 @@ export default function PerfilScreen() {
           <Pressable onPress={handleCambiarFoto} disabled={subiendoFoto} style={styles.avatarWrapper}>
             <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
               {usuario?.fotoPerfilUrl ? (
-                <Image source={{ uri: usuario.fotoPerfilUrl }} style={styles.avatarImage} contentFit="cover" />
+                <Image source={{ uri: urlDelServidor(usuario.fotoPerfilUrl) }} style={styles.avatarImage} contentFit="cover" />
               ) : (
                 <ThemedText type="smallBold" style={{ color: theme.onPrimary }}>
                   {usuario?.name?.slice(0, 2).toUpperCase() ?? '??'}
@@ -148,6 +164,24 @@ export default function PerfilScreen() {
             trackColor={{ true: theme.primary }}
           />
         </ThemedView>
+
+        {Platform.OS !== 'web' && (
+          <ThemedView type="backgroundElement" style={styles.logoutRow}>
+            <SymbolView
+              name={{ ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }}
+              size={16}
+              tintColor={theme.text}
+            />
+            <ThemedText type="small" style={styles.switchLabel}>
+              Avisarme de reportes cercanos (300 m)
+            </ThemedText>
+            <Switch
+              value={alertasActivadas}
+              onValueChange={handleToggleAlertas}
+              trackColor={{ true: theme.primary }}
+            />
+          </ThemedView>
+        )}
 
         <Pressable onPress={handleCerrarSesion} style={({ pressed }) => pressed && styles.pressed}>
           <ThemedView type="backgroundElement" style={styles.logoutRow}>
