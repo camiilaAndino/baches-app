@@ -13,7 +13,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ESTADO_API_META, PRIORIDAD_META, inferirVisualTipo } from '@/constants/denuncias';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { DenunciaApi, fetchDenuncias } from '@/services/api';
+import { DenunciaApi, fetchDenuncias, urlDelServidor } from '@/services/api';
 
 export default function DenunciaDetalleScreen() {
   const theme = useTheme();
@@ -81,14 +81,14 @@ export default function DenunciaDetalleScreen() {
         <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}>
           {denuncia.fotos_urls.length > 0 ? (
             <View style={styles.fotos}>
-              <Image source={{ uri: denuncia.fotos_urls[fotoActiva] }} style={styles.fotoPrincipal} contentFit="cover" />
+              <Image source={{ uri: urlDelServidor(denuncia.fotos_urls[fotoActiva]) }} style={styles.fotoPrincipal} contentFit="cover" />
 
               {denuncia.fotos_urls.length > 1 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbsRow}>
                   {denuncia.fotos_urls.map((url, index) => (
                     <Pressable key={url} onPress={() => setFotoActiva(index)}>
                       <Image
-                        source={{ uri: url }}
+                        source={{ uri: urlDelServidor(url) }}
                         style={[
                           styles.thumb,
                           { borderColor: index === fotoActiva ? theme.primary : theme.border },

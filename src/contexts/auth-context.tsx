@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
-import { loginUsuario, UsuarioAutenticado } from '@/services/api';
+import { actualizarPushToken, loginUsuario, UsuarioAutenticado } from '@/services/api';
+import { registrarParaNotificaciones } from '@/services/notificaciones-push';
 
 const CLAVE_STORAGE = 'alertabaches:usuario';
 const CLAVE_RECORDADA = 'alertabaches:cuenta-recordada';
@@ -54,6 +55,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => setCargandoSesion(false));
   }, []);
+
+  useEffect(() => {
+    if (!usuario) return;
+
+    registrarParaNotificaciones()
+      .then((token) => {
+        if (token) return actualizarPushToken(usuario.id, token);
+      })
+      .catch(() => {
+        // no es crítico: si falla, el usuario simplemente no recibe push por ahora
+      });
+  }, [usuario?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function iniciarSesion(email: string, password: string) {
     const usuarioAutenticado = await loginUsuario(email, password);

@@ -1,17 +1,46 @@
+import Constants from 'expo-constants';
 import { File as ArchivoNativo, UploadType } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 import { DenunciaEstadoApi, DenunciaPrioridad } from '@/constants/denuncias';
 
 /**
- * IP local de la PC donde corre el backend (baches-web). El celular y la PC
- * tienen que estar en la misma red WiFi. Si cambia la IP de la PC (podés
- * verla con `ipconfig`), actualizá este valor.
+ * URL del backend (baches-web). Se resuelve así:
+ *   1. Si existe EXPO_PUBLIC_API_URL (en .env), se usa esa (ej. para producción).
+ *   2. Si no, se toma la IP de la PC que corre Expo (la misma donde corre el
+ *      backend), así no hay que cambiarla a mano al cambiar de red WiFi.
  *
  * En la PC, levantá el backend con:
  *   php artisan serve --host=0.0.0.0 --port=8000
  */
-const API_BASE_URL = 'http://192.168.0.10:8000/api';
+function resolverApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // En web, `window` no existe durante el renderizado en el servidor de Expo Router.
+  const host =
+    Platform.OS === 'web'
+      ? typeof window !== 'undefined'
+        ? window.location.hostname
+        : undefined
+      : Constants.expoConfig?.hostUri?.split(':')[0];
+
+  return `http://${host ?? 'localhost'}:8000/api`;
+}
+
+const API_BASE_URL = resolverApiBaseUrl();
+
+/**
+ * Laravel devuelve las URLs de archivos (fotos) con la IP que tenía la PC al
+ * momento de pedirlas, y la sesión guardada en el dispositivo las conserva.
+ * Esto reemplaza el origen por el del backend actual, para que las fotos
+ * sigan cargando después de cambiar de red.
+ */
+export function urlDelServidor(url: string): string {
+  const origenActual = API_BASE_URL.replace(/\/api\/?$/, '');
+  return url.replace(/^https?:\/\/[^/]+/, origenActual);
+}
 
 async function extraerMensajeDeError(response: Response, mensajePorDefecto: string): Promise<string> {
   const json = await response.json().catch(() => null);
@@ -138,6 +167,18 @@ export async function actualizarPassword(usuarioId: number, payload: ActualizarP
 
   if (!response.ok) {
     throw new Error(await extraerMensajeDeError(response, 'No se pudo actualizar la contraseña.'));
+  }
+}
+
+export async function actualizarPushToken(usuarioId: number, expoPushToken: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/perfil/${usuarioId}/push-token`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expo_push_token: expoPushToken }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extraerMensajeDeError(response, 'No se pudo guardar el token de notificaciones.'));
   }
 }
 

@@ -33,7 +33,8 @@ export function NotificacionCard({ notificacion, onPress }: Props) {
 
         <View style={styles.texts}>
           <ThemedText type="small" numberOfLines={2}>
-            Tu denuncia{notificacion.tipoDenuncia ? ` de ${notificacion.tipoDenuncia}` : ''} pasó a{' '}
+            Tu denuncia #{notificacion.denunciaId}
+            {notificacion.tipoDenuncia ? ` de ${notificacion.tipoDenuncia}` : ''} pasó a{' '}
             <ThemedText type="smallBold" style={{ color: estadoMeta.color }}>
               {estadoMeta.label}
             </ThemedText>
