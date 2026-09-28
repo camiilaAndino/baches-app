@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
-import { ESTADO_API_META } from '@/constants/denuncias';
+import { metaEstado } from '@/constants/denuncias';
 import { ENCARNACION_LIMITES, ENCARNACION_ZOOM_MIN } from '@/constants/mapa';
 import { Spacing } from '@/constants/theme';
 import { DenunciaApi } from '@/services/api';
@@ -12,8 +12,8 @@ type Props = {
 };
 
 function construirHtml(denuncia: DenunciaApi): string {
-  const color = ESTADO_API_META[denuncia.estado].color;
-  const icono = ESTADO_API_META[denuncia.estado].icon.web;
+  const color = metaEstado(denuncia.estado).color;
+  const icono = metaEstado(denuncia.estado).icon.web;
 
   return `<!DOCTYPE html>
 <html>

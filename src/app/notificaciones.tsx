@@ -2,8 +2,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthHeader } from '@/components/auth-header';
+import { BottomNav, ESPACIO_BOTTOM_NAV } from '@/components/bottom-nav';
 import { HeaderTitulo } from '@/components/header-titulo';
 import { NotificacionCard } from '@/components/notificacion-card';
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +19,7 @@ const NOTIFICACIONES_POR_PAGINA = 5;
 
 export default function NotificacionesScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { usuario } = useAuth();
 
   const [notificaciones, setNotificaciones] = useState<NotificacionApi[]>([]);
@@ -88,7 +91,7 @@ export default function NotificacionesScreen() {
       </AuthHeader>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + ESPACIO_BOTTOM_NAV }]}
         refreshControl={<RefreshControl refreshing={refrescando} onRefresh={handleRefresh} />}>
         {error && (
           <Pressable onPress={() => cargarNotificaciones()} style={({ pressed }) => pressed && styles.pressed}>
@@ -166,6 +169,8 @@ export default function NotificacionesScreen() {
           </>
         )}
       </ScrollView>
+
+      <BottomNav />
     </ThemedView>
   );
 }
@@ -181,7 +186,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingTop: Spacing.five,
     paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.five,
     gap: Spacing.three,
   },
   loader: {

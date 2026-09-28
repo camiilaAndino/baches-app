@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ESTADO_API_META, inferirVisualTipo } from '@/constants/denuncias';
+import { inferirVisualTipo, metaEstado } from '@/constants/denuncias';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { DenunciaApi, urlDelServidor } from '@/services/api';
@@ -13,7 +13,7 @@ import { DenunciaApi, urlDelServidor } from '@/services/api';
 export function MiDenunciaCard({ denuncia }: { denuncia: DenunciaApi }) {
   const theme = useTheme();
   const visualTipo = inferirVisualTipo(denuncia.tipo_denuncia.nombre);
-  const estadoMeta = ESTADO_API_META[denuncia.estado];
+  const estadoMeta = metaEstado(denuncia.estado);
   const fecha = new Date(denuncia.created_at).toLocaleDateString('es-PY', {
     day: '2-digit',
     month: '2-digit',

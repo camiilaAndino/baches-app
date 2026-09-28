@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View }
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthHeader } from '@/components/auth-header';
+import { BottomNav, ESPACIO_BOTTOM_NAV } from '@/components/bottom-nav';
 import { HeaderTitulo } from '@/components/header-titulo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -128,7 +129,7 @@ export default function EditarPerfilScreen() {
       </AuthHeader>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + ESPACIO_BOTTOM_NAV }]}
         keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
           <ThemedText type="smallBold" style={styles.sectionTitle}>
@@ -324,6 +325,8 @@ export default function EditarPerfilScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <BottomNav />
     </ThemedView>
   );
 }

@@ -7,6 +7,9 @@ import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 
+/** Espacio que hay que dejar al final del contenido (además de `insets.bottom`) para que el menú no lo tape. */
+export const ESPACIO_BOTTOM_NAV = Spacing.six + Spacing.five;
+
 export function BottomNav() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -14,6 +17,7 @@ export function BottomNav() {
   const { cerrarSesion } = useAuth();
   const enInicio = pathname === '/';
   const enDenuncias = pathname === '/denuncias';
+  const enPerfil = pathname === '/perfil' || pathname === '/editar-perfil';
 
   function confirmarSalir() {
     Alert.alert('¿Estás seguro?', 'Vas a cerrar tu sesión en AlertaBaches.', [
@@ -66,14 +70,14 @@ export function BottomNav() {
         </Pressable>
 
         <Pressable
-          onPress={() => router.push('/perfil')}
+          onPress={() => pathname !== '/perfil' && router.push('/perfil')}
           hitSlop={12}
           style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
-          <View style={styles.itemCircle}>
+          <View style={[styles.itemCircle, enPerfil && { backgroundColor: `${theme.primary}1A` }]}>
             <SymbolView
-              name={{ ios: 'person', android: 'person', web: 'person' }}
+              name={{ ios: enPerfil ? 'person.fill' : 'person', android: 'person', web: 'person' }}
               size={22}
-              tintColor={theme.textSecondary}
+              tintColor={enPerfil ? theme.primary : theme.textSecondary}
             />
           </View>
         </Pressable>

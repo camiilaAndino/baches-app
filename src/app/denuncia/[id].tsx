@@ -6,11 +6,13 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthHeader } from '@/components/auth-header';
+import { BottomNav, ESPACIO_BOTTOM_NAV } from '@/components/bottom-nav';
 import { DenunciaMap } from '@/components/denuncia-map';
 import { HeaderTitulo } from '@/components/header-titulo';
+import { SeguimientoDenuncia } from '@/components/seguimiento-denuncia';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ESTADO_API_META, PRIORIDAD_META, inferirVisualTipo } from '@/constants/denuncias';
+import { PRIORIDAD_META, inferirVisualTipo, metaEstado } from '@/constants/denuncias';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { DenunciaApi, fetchDenuncias, urlDelServidor } from '@/services/api';
@@ -45,7 +47,7 @@ export default function DenunciaDetalleScreen() {
   }
 
   const visualTipo = denuncia ? inferirVisualTipo(denuncia.tipo_denuncia.nombre) : null;
-  const estadoMeta = denuncia ? ESTADO_API_META[denuncia.estado] : null;
+  const estadoMeta = denuncia ? metaEstado(denuncia.estado) : null;
   const prioridadMeta = denuncia ? PRIORIDAD_META[denuncia.prioridad] : null;
   const fecha = denuncia
     ? new Date(denuncia.created_at).toLocaleDateString('es-PY', {
@@ -78,7 +80,7 @@ export default function DenunciaDetalleScreen() {
           </ThemedText>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.five }]}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + ESPACIO_BOTTOM_NAV }]}>
           {denuncia.fotos_urls.length > 0 ? (
             <View style={styles.fotos}>
               <Image source={{ uri: urlDelServidor(denuncia.fotos_urls[fotoActiva]) }} style={styles.fotoPrincipal} contentFit="cover" />
@@ -150,6 +152,8 @@ export default function DenunciaDetalleScreen() {
             </View>
           </ThemedView>
 
+          <SeguimientoDenuncia denuncia={denuncia} />
+
           <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
             <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
               Descripción
@@ -173,6 +177,8 @@ export default function DenunciaDetalleScreen() {
           </ThemedView>
         </ScrollView>
       )}
+
+      <BottomNav />
     </ThemedView>
   );
 }

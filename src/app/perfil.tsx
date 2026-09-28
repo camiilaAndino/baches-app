@@ -3,9 +3,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { Link, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthHeader } from '@/components/auth-header';
+import { BottomNav, ESPACIO_BOTTOM_NAV } from '@/components/bottom-nav';
 import { HeaderTitulo } from '@/components/header-titulo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -17,6 +19,7 @@ import { actualizarFotoPerfil, urlDelServidor } from '@/services/api';
 
 export default function PerfilScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { usuario, cerrarSesion, biometriaActivada, activarBiometria, desactivarBiometria, actualizarUsuario } =
     useAuth();
   const { alertasActivadas, activarAlertas, desactivarAlertas } = useAlertasCercania();
@@ -102,7 +105,7 @@ export default function PerfilScreen() {
         />
       </AuthHeader>
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + ESPACIO_BOTTOM_NAV }]}>
         <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.border }]}>
           <Pressable onPress={handleCambiarFoto} disabled={subiendoFoto} style={styles.avatarWrapper}>
             <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
@@ -195,7 +198,9 @@ export default function PerfilScreen() {
             </ThemedText>
           </ThemedView>
         </Pressable>
-      </View>
+      </ScrollView>
+
+      <BottomNav />
     </ThemedView>
   );
 }
