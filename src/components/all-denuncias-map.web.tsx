@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ESTADO_API_META } from '@/constants/denuncias';
+import { ESTADO_API_META, ESTADOS_EN_MAPA } from '@/constants/denuncias';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { DenunciaApi } from '@/services/api';
@@ -35,7 +35,7 @@ export function AllDenunciasMap({ denuncias }: Props) {
       </ThemedView>
 
       <View style={styles.legendRow}>
-        {(Object.keys(ESTADO_API_META) as (keyof typeof ESTADO_API_META)[]).map((estado) => (
+        {ESTADOS_EN_MAPA.map((estado) => (
           <View key={estado} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: ESTADO_API_META[estado].color }]} />
             <ThemedText type="small" themeColor="textSecondary">

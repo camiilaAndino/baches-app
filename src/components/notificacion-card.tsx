@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ESTADO_API_META } from '@/constants/denuncias';
+import { metaEstado } from '@/constants/denuncias';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { NotificacionApi } from '@/services/api';
@@ -15,7 +15,7 @@ type Props = {
 
 export function NotificacionCard({ notificacion, onPress }: Props) {
   const theme = useTheme();
-  const estadoMeta = ESTADO_API_META[notificacion.estado];
+  const estadoMeta = metaEstado(notificacion.estado);
   const fecha = new Date(notificacion.createdAt).toLocaleDateString('es-PY', {
     day: '2-digit',
     month: '2-digit',

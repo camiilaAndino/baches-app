@@ -289,6 +289,19 @@ export type DenunciaApi = {
   created_at: string;
   tipo_denuncia: { id: number; nombre: string };
   fotos_urls: string[];
+  motivo_rechazo: string | null;
+  rechazada_at: string | null;
+  /** Último trabajo asignado a la denuncia (null si no hay o si se canceló). */
+  mantenimiento: MantenimientoApi | null;
+};
+
+export type MantenimientoApi = {
+  estado: 'programado' | 'en_curso' | 'finalizado';
+  tecnico: string;
+  /** Fecha sin hora, formato YYYY-MM-DD. */
+  fecha_programada: string;
+  fecha_fin: string | null;
+  trabajo_realizado: string | null;
 };
 
 export async function fetchDenuncias(): Promise<DenunciaApi[]> {

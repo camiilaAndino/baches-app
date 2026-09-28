@@ -60,11 +60,19 @@ export const TIPO_META: Record<DenunciaTipo, { label: string; color: string; ico
 };
 
 /** Estados reales que devuelve la API (distinto del enum de datos mock de abajo). */
-export type DenunciaEstadoApi = 'pendiente' | 'en_proceso' | 'resuelta';
+export type DenunciaEstadoApi = 'pendiente' | 'en_proceso' | 'resuelta' | 'rechazada';
 
-export const ESTADOS_API_ORDEN: DenunciaEstadoApi[] = ['pendiente', 'en_proceso', 'resuelta'];
+export const ESTADOS_API_ORDEN: DenunciaEstadoApi[] = ['pendiente', 'en_proceso', 'resuelta', 'rechazada'];
 
-export const ESTADO_API_META: Record<DenunciaEstadoApi, { label: string; color: string; icon: SymbolName }> = {
+/** Estados que se muestran en el mapa general: las rechazadas no son un problema real en la calle. */
+export const ESTADOS_EN_MAPA: DenunciaEstadoApi[] = ['pendiente', 'en_proceso', 'resuelta'];
+
+/** Denuncias que todavía representan un problema sin arreglar (las usan las alertas de cercanía). */
+export const ESTADOS_ABIERTOS: DenunciaEstadoApi[] = ['pendiente', 'en_proceso'];
+
+type EstadoMeta = { label: string; color: string; icon: SymbolName };
+
+export const ESTADO_API_META: Record<DenunciaEstadoApi, EstadoMeta> = {
   pendiente: {
     label: 'Pendiente',
     color: '#E8A93C',
@@ -80,7 +88,26 @@ export const ESTADO_API_META: Record<DenunciaEstadoApi, { label: string; color: 
     color: '#2FAF64',
     icon: { ios: 'checkmark.circle', android: 'check_circle', web: 'check_circle' },
   },
+  rechazada: {
+    label: 'Rechazada',
+    color: '#8B93A1',
+    icon: { ios: 'nosign', android: 'block', web: 'block' },
+  },
 };
+
+/**
+ * Metadatos visuales de un estado. Si el backend manda un estado que esta
+ * versión de la app no conoce, devuelve uno neutro en vez de romper la pantalla.
+ */
+export function metaEstado(estado: string): EstadoMeta {
+  return (
+    ESTADO_API_META[estado as DenunciaEstadoApi] ?? {
+      label: estado,
+      color: '#8B93A1',
+      icon: { ios: 'questionmark.circle', android: 'help', web: 'help' },
+    }
+  );
+}
 
 export type DenunciaPrioridad = 'leve' | 'moderado' | 'grave';
 

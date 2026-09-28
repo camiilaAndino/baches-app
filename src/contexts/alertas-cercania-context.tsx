@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
+import { ESTADOS_ABIERTOS } from '@/constants/denuncias';
 import { useAuth } from '@/contexts/auth-context';
 import { DenunciaApi, fetchDenuncias } from '@/services/api';
 import { Coordenadas, distanciaMetros } from '@/utils/distancia';
@@ -37,7 +38,7 @@ function revisarCercania(posicion: Coordenadas, denuncias: DenunciaApi[], ultimo
   const ahora = Date.now();
 
   const cercanas = denuncias
-    .filter((denuncia) => denuncia.estado !== 'resuelta')
+    .filter((denuncia) => ESTADOS_ABIERTOS.includes(denuncia.estado))
     .map((denuncia) => ({
       denuncia,
       distancia: distanciaMetros(posicion, { lat: denuncia.latitud, lng: denuncia.longitud }),

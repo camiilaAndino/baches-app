@@ -40,8 +40,8 @@ function RootNavigation() {
         <Stack.Screen name="index" />
         <Stack.Screen name="denuncias" />
         <Stack.Screen name="crear-denuncia" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="perfil" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="notificaciones" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="perfil" />
+        <Stack.Screen name="notificaciones" />
         <Stack.Screen name="denuncia/[id]" />
       </Stack.Protected>
 

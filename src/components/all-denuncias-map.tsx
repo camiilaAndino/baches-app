@@ -7,7 +7,7 @@ import { WebView } from 'react-native-webview';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ESTADO_API_META } from '@/constants/denuncias';
+import { ESTADO_API_META, ESTADOS_EN_MAPA, metaEstado } from '@/constants/denuncias';
 import { ENCARNACION_CENTRO, ENCARNACION_LIMITES, ENCARNACION_ZOOM_MIN } from '@/constants/mapa';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -30,10 +30,10 @@ function construirHtml(denuncias: DenunciaApi[], ubicacionUsuario: Coordenadas |
   const puntos = denunciasAMostrar.map((denuncia) => ({
     lat: denuncia.latitud,
     lng: denuncia.longitud,
-    color: ESTADO_API_META[denuncia.estado].color,
-    icono: ESTADO_API_META[denuncia.estado].icon.web,
+    color: metaEstado(denuncia.estado).color,
+    icono: metaEstado(denuncia.estado).icon.web,
     tipo: denuncia.tipo_denuncia.nombre,
-    estado: ESTADO_API_META[denuncia.estado].label,
+    estado: metaEstado(denuncia.estado).label,
     direccion: denuncia.direccion ?? 'Sin dirección',
   }));
 
@@ -132,7 +132,7 @@ function Leyenda({ bottomOffset }: { bottomOffset: number }) {
     <View pointerEvents="none" style={[styles.legendFloating, { bottom: bottomOffset }]}>
       {/* Sufijo hex "E6" = ~90% de opacidad, para que se intuya el mapa detrás. */}
       <View style={[styles.legendRow, { backgroundColor: `${theme.background}E6`, borderColor: theme.border }]}>
-        {(Object.keys(ESTADO_API_META) as (keyof typeof ESTADO_API_META)[]).map((estado) => (
+        {ESTADOS_EN_MAPA.map((estado) => (
           <View key={estado} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: ESTADO_API_META[estado].color }]}>
               <SymbolView name={ESTADO_API_META[estado].icon} size={9} tintColor="#ffffff" />
@@ -155,14 +155,19 @@ export function AllDenunciasMap({ denuncias }: Props) {
   const [errorUbicacion, setErrorUbicacion] = useState<string | null>(null);
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
 
-  const html = useMemo(() => construirHtml(denuncias, ubicacionUsuario), [denuncias, ubicacionUsuario]);
+  const denunciasMapa = useMemo(
+    () => denuncias.filter((denuncia) => ESTADOS_EN_MAPA.includes(denuncia.estado)),
+    [denuncias]
+  );
+
+  const html = useMemo(() => construirHtml(denunciasMapa, ubicacionUsuario), [denunciasMapa, ubicacionUsuario]);
 
   const denunciasCerca = useMemo(() => {
     if (!ubicacionUsuario) return null;
-    return denuncias.filter(
+    return denunciasMapa.filter(
       (denuncia) => distanciaMetros(ubicacionUsuario, { lat: denuncia.latitud, lng: denuncia.longitud }) <= RADIO_CERCA_METROS
     );
-  }, [denuncias, ubicacionUsuario]);
+  }, [denunciasMapa, ubicacionUsuario]);
 
   async function alternarCercaDeMi() {
     if (ubicacionUsuario) {
