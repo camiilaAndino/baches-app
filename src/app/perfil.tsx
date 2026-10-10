@@ -96,12 +96,12 @@ export default function PerfilScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-      <AuthHeader height={45}>
+      <AuthHeader height={90}>
         <HeaderTitulo
           icono={{ ios: 'person.fill', android: 'person', web: 'person' }}
           subtitulo="Cuenta"
           titulo="Mi perfil"
-          subirContenido={50}
+          subirContenido={5} 
         />
       </AuthHeader>
 
